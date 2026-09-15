@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { authService, type AuthUser } from "./auth/authService";
+import { authService, type AuthUser } from "./api/authService";
 
 export interface SaaSFeature {
   id: string;
@@ -36,6 +36,8 @@ const initialTheme = loadTheme();
 applyTheme(initialTheme); // apply before first paint to avoid a theme flash
 
 const initialUser = authService.loadUser();
+// Access token is memory-only per secure flow — never persisted to localStorage
+const initialAccessToken: string | null = null;
 const PAGE_KEY = "saas-page";
 function loadPage(): string {
   if (typeof localStorage === "undefined") return "dashboard";
@@ -197,7 +199,8 @@ interface SaaSStore {
   selectedWorkspaceEntityId: string | null;
   followSelected: boolean;
 
-  // auth
+  // auth — accessToken is memory-only (not localStorage), refresh token in HttpOnly cookie
+  accessToken: string | null;
   user: AuthUser | null;
   isAdminSession: boolean;
   authView: "login" | "register" | "admin";
@@ -225,13 +228,15 @@ interface SaaSStore {
   pushToast: (toastNotification: Omit<Toast, "id" | "ttl"> & { ttl?: number }) => number;
   dismissToast: (toastId: number) => void;
   setCmdkOpen: (isCommandPaletteOpen: boolean) => void;
+  setAccessToken: (token: string | null) => void;
   setAuth: (
     authToken: string,
-    refreshToken: string,
-    authenticatedUser: AuthUser,
+    refreshTokenOrUser: string | AuthUser,
+    authenticatedUserOrIsAdmin?: AuthUser | boolean,
     isAdminSession?: boolean,
   ) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
+  initializeAuth: () => Promise<void>;
   setAuthView: (selectedAuthView: "login" | "register" | "admin") => void;
   setPage: (selectedPageId: string) => void;
   toggleNav: () => void;
@@ -285,7 +290,7 @@ interface SaaSStore {
   setIsSubmitting: (submittingState: boolean) => void;
 }
 
-export const useSaaSStore = create<SaaSStore>((set) => ({
+export const useSaaSStore = create<SaaSStore>((set, get) => ({
   workspaceId: "demo",
   connected: false,
   dbFeatures: [],
@@ -296,6 +301,7 @@ export const useSaaSStore = create<SaaSStore>((set) => ({
   selectedWorkspaceEntityId: null,
   followSelected: false,
 
+  accessToken: initialAccessToken,
   user: initialUser,
   isAdminSession: initialIsAdminSession,
   authView: "login",
@@ -330,15 +336,49 @@ export const useSaaSStore = create<SaaSStore>((set) => ({
   dismissToast: (toastId) =>
     set((s) => ({ toasts: s.toasts.filter((toastNotification) => toastNotification.id !== toastId) })),
   setCmdkOpen: (isCommandPaletteOpen) => set({ cmdkOpen: isCommandPaletteOpen }),
-  setAuth: (authToken, refreshToken, authenticatedUser, isAdminSession = false) => {
-    authService.persist(authToken, refreshToken, authenticatedUser);
-    persistIsAdminSession(isAdminSession);
-    set({ user: authenticatedUser, isAdminSession });
+  setAccessToken: (token) => set({ accessToken: token }),
+  setAuth: (authToken: string, refreshTokenOrUser: any, authenticatedUserOrIsAdmin?: any, isAdminSession = false) => {
+    // Support both legacy (token, refresh, user) and new (token, user)
+    let user: AuthUser | null = null;
+    let isAdmin = false;
+    if (typeof refreshTokenOrUser === "object" && refreshTokenOrUser !== null && "email" in refreshTokenOrUser) {
+      user = refreshTokenOrUser as AuthUser;
+      isAdmin = Boolean(authenticatedUserOrIsAdmin);
+    } else if (typeof authenticatedUserOrIsAdmin === "object" && authenticatedUserOrIsAdmin !== null && "email" in authenticatedUserOrIsAdmin) {
+      user = authenticatedUserOrIsAdmin as AuthUser;
+      isAdmin = Boolean(isAdminSession);
+    }
+    if (!user) return;
+    // Persist user (not token) for UI, token stays memory-only
+    authService.persist(authToken, "", user);
+    persistIsAdminSession(isAdmin);
+    set({ accessToken: authToken, user, isAdminSession: isAdmin });
   },
-  logout: () => {
+  logout: async () => {
+    try {
+      await authService.logout();
+    } catch {}
     authService.clear();
     persistIsAdminSession(false);
-    set({ user: null, isAdminSession: false, authView: "login" });
+    set({ accessToken: null, user: null, isAdminSession: false, authView: "login" });
+  },
+  initializeAuth: async () => {
+    const { accessToken, user } = get();
+    if (accessToken && user) return;
+    // Try to refresh via HttpOnly cookie
+    const newToken = await authService.refresh();
+    if (!newToken) {
+      // No valid refresh cookie — stay logged out
+      return;
+    }
+    // Fetch user with new token
+    const me = await authService.fetchMe(newToken);
+    if (me) {
+      authService.persist(newToken, "", me);
+      set({ accessToken: newToken, user: me });
+    } else {
+      set({ accessToken: newToken });
+    }
   },
   setAuthView: (selectedAuthView) => set({ authView: selectedAuthView }),
   setPage: (selectedPageId) => {

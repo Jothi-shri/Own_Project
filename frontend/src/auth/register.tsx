@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSaaSStore } from "../store";
-import { authService } from "./authService";
+import { authService } from "../api/authService";
 import {
   ChevronDown,
   Eye,

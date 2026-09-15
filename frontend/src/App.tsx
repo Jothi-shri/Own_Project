@@ -83,6 +83,12 @@ function SaaSNavigation() {
   const logout = useSaaSStore((s) => s.logout);
   if (!authenticatedUser) return null;
 
+  const handleLogout = () => {
+    logout();
+    // store logout clears access_token + user; force redirect to "/" per spec
+    window.location.href = "/";
+  };
+
   const navigationLinkStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -123,7 +129,7 @@ function SaaSNavigation() {
         {authenticatedUser.name} • {authenticatedUser.email}
       </span>
       <button
-        onClick={() => logout()}
+        onClick={handleLogout}
         style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
       >
         <LogOut size={12} /> Logout
@@ -134,6 +140,10 @@ function SaaSNavigation() {
 
 export default function App() {
   const authenticatedUser = useSaaSStore((s) => s.user);
+  useEffect(() => {
+    // On page refresh, accessToken is memory-only and lost — try to restore via HttpOnly refresh cookie
+    useSaaSStore.getState().initializeAuth();
+  }, []);
   return (
     <>
       <SaaSNavigation />

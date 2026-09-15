@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSaaSStore } from "../store";
-import { authService } from "./authService";
+import { authService } from "../api/authService";
 import { Eye, EyeOff, Lock, Mail, TriangleAlert } from "lucide-react";
 
 interface LoginCredentials {
@@ -34,7 +34,8 @@ export default function Login() {
     try {
       const authResponse = await authService.login(loginCredentials.email, loginCredentials.password);
       if (shouldRememberSession) localStorage.setItem("rememberMe", "true");
-      setAuth(authResponse.access_token, authResponse.refresh_token, authResponse.user, false);
+      // refresh token is now HttpOnly cookie — only access token in memory
+      setAuth(authResponse.access_token, authResponse.user, false);
       pushToast({
         kind: "success",
         title: `Welcome back, ${authResponse.user.name.split(" ")[0]}`,
