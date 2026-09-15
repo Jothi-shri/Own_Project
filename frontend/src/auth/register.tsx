@@ -4,23 +4,18 @@ import { useNavigate } from "react-router-dom";
 import { useSaaSStore } from "../store";
 import { authService } from "../api/authService";
 import {
-  ChevronDown,
   Eye,
   EyeOff,
   Lock,
   Mail,
-  Shield,
   User,
   TriangleAlert,
   CheckCircle2,
 } from "lucide-react";
 
-const ROLES = ["Analyst", "Technician", "Supervisor", "Admin"] as const;
-
 interface RegistrationForm {
   name: string;
   email: string;
-  role: string;
   password: string;
   confirmPassword: string;
 }
@@ -32,7 +27,6 @@ export default function Register() {
   const [registrationForm, setRegistrationForm] = useState<RegistrationForm>({
     name: "",
     email: "",
-    role: "Analyst",
     password: "",
     confirmPassword: "",
   });
@@ -69,7 +63,7 @@ export default function Register() {
     !!registrationForm.confirmPassword && registrationForm.password === registrationForm.confirmPassword;
   const isRegistrationFormValid = !!registrationForm.name && !!registrationForm.email && isPasswordStrong && doPasswordsMatch;
 
-  const handleRegistrationFieldChange = (fieldChangeEvent: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleRegistrationFieldChange = (fieldChangeEvent: ChangeEvent<HTMLInputElement>) => {
     const { name: fieldName, value: fieldValue } = fieldChangeEvent.target;
     setRegistrationForm((previousForm) => ({ ...previousForm, [fieldName]: fieldValue }));
   };
@@ -89,7 +83,7 @@ export default function Register() {
     }
     setIsSubmitting(true);
     try {
-      await authService.register(registrationForm.name, registrationForm.email, registrationForm.password, registrationForm.role);
+      await authService.register(registrationForm.name, registrationForm.email, registrationForm.password);
       setIsRegistrationComplete(true);
       pushToast({
         kind: "success",
@@ -209,41 +203,6 @@ export default function Register() {
               placeholder="you@company.com"
               className="auth-glass-input"
             />
-          </div>
-        </div>
-
-        <div>
-          <label
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--auth-text)" }}
-          >
-            Role
-          </label>
-          <div className="auth-glass-input-wrap">
-            <Shield size={18} className="auth-glass-icon" aria-hidden />
-            <select
-              name="role"
-              value={registrationForm.role}
-              onChange={handleRegistrationFieldChange}
-              className="auth-glass-input"
-              style={{
-                paddingRight: "36px",
-                appearance: "none",
-                cursor: "pointer",
-              }}
-            >
-              {ROLES.map((teamRole) => (
-                <option key={teamRole} value={teamRole}>
-                  {teamRole}
-                </option>
-              ))}
-            </select>
-            <span
-              className="absolute right-2.5 pointer-events-none flex p-1"
-              style={{ color: "var(--auth-text-muted)" }}
-            >
-              <ChevronDown size={18} aria-hidden />
-            </span>
           </div>
         </div>
 

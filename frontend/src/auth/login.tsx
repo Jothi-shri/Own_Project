@@ -191,17 +191,6 @@ export default function Login() {
             Create one
           </button>
         </span>
-        <span className="text-xs" style={{ color: "var(--auth-text-muted)" }}>
-          |
-        </span>
-        <button
-          type="button"
-          className="bg-transparent border-none cursor-pointer text-sm font-extrabold p-0 transition-all duration-150 hover:opacity-85 hover:underline"
-          style={{ color: "var(--auth-primary-from)" }}
-          onClick={() => setAuthView("admin")}
-        >
-          Admin Login
-        </button>
       </div>
     </>
   );

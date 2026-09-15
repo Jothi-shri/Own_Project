@@ -9,6 +9,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, Cookie
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -58,7 +59,8 @@ class RegisterIn(BaseModel):
     name: str
     email: str
     password: str
-    role: str = "Analyst"
+    # NOTE: no `role` field — every self-registration is an Analyst.
+    # The DB column still exists; admins are promoted server-side only.
 
 
 class LoginIn(BaseModel):
@@ -124,16 +126,29 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
     if len(body.password) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
 
-    user = User(
-        id=_next_user_id(db),
-        name=body.name.strip(),
-        email=email,
-        password_hash=hash_password(body.password),
-        role=body.role or "Analyst",
-        status="Active",
-    )
-    db.add(user)
-    db.commit()
+    # Retry on the (very unlikely) random id collision.
+    for _ in range(3):
+        user = User(
+            id=_next_user_id(db),
+            name=body.name.strip(),
+            email=email,
+            password_hash=hash_password(body.password),
+            role="Analyst",
+            status="Active",
+        )
+        db.add(user)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            # Email race or id collision — re-check email, otherwise retry id.
+            if db.scalar(select(User).where(func.lower(User.email) == email)):
+                raise HTTPException(409, "An account with this email already exists")
+            continue
+        break
+    else:
+        raise HTTPException(500, "Could not create account, please retry")
+    db.refresh(user)
     return _auth_response(user, response)
 
 
