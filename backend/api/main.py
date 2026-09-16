@@ -5,7 +5,6 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..db.database import Base, engine
 from .auth.router import router as auth_router
 from .dashboard.router import router as dashboard_router
 from .projects.router import router as projects_router
@@ -16,7 +15,8 @@ from .notifications.router import router as notifications_router
 from .settings.router import router as settings_router
 from .config import settings
 
-Base.metadata.create_all(bind=engine)
+# NOTE: Tables are managed by Alembic migrations (alembic upgrade head)
+# Do not use Base.metadata.create_all here for PostgreSQL.
 
 app = FastAPI(title="SaaS API", version="0.1.0")
 

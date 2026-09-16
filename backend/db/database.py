@@ -1,4 +1,4 @@
-"""SQLAlchemy engine / session factory."""
+"""SQLAlchemy engine / session factory — PostgreSQL only."""
 
 from __future__ import annotations
 
@@ -7,14 +7,25 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 from ..api.config import settings
 
-# SQLite needs check_same_thread=False for FastAPI's threaded uvicorn
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+# Centralized PostgreSQL engine — DATABASE_URL comes from .env
+# Uses psycopg (v3) driver: postgresql+psycopg://USER:PASSWORD@HOST:PORT/DB
+if not settings.database_url:
+    raise RuntimeError(
+        "DATABASE_URL not configured. Set it in .env as "
+        "postgresql+psycopg://USER:PASSWORD@HOST:PORT/DATABASE"
+    )
 
-engine = create_engine(settings.database_url, connect_args=connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_engine(
+    settings.database_url,
+    pool_pre_ping=True,  # verify connections before use (handles DB restarts)
+    future=True,
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
 Base = declarative_base()
 
 def get_db():
+    """FastAPI dependency — yields a DB session and closes it after request."""
     db: Session = SessionLocal()
     try:
         yield db

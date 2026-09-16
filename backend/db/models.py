@@ -1,4 +1,4 @@
-"""ORM models."""
+"""ORM models — PostgreSQL compatible."""
 
 from __future__ import annotations
 
@@ -13,13 +13,15 @@ from .database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)          # USR-XXXXXX
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)          # USR-XXXXXX
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False, default="Analyst")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="Active")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
     def public(self) -> dict:
         return {

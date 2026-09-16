@@ -46,6 +46,14 @@ if [[ ! -d "$FRONTEND_DIR" ]]; then
   die "frontend/ not found at $FRONTEND_DIR"
 fi
 
+# Load .env if present (for DATABASE_URL etc.)
+if [[ -f "$PROJECT_ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$PROJECT_ROOT/.env"
+  set +a
+fi
+
 PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
 
 if [[ "$BACKEND_ONLY" == false ]]; then
@@ -100,6 +108,14 @@ setup_backend() {
     PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
   else
     info "Backend dependencies already installed — skipping uv sync."
+  fi
+
+  # Run Alembic migrations if available (PostgreSQL)
+  if [[ -f "$PROJECT_ROOT/alembic.ini" ]]; then
+    info "Running Alembic migrations (postgresql) ..."
+    if ! PYTHONPATH="$PROJECT_ROOT" "$PYTHON_BIN" -m alembic upgrade head 2>&1 | tail -n 20; then
+      warn "Alembic upgrade failed — check DATABASE_URL and PostgreSQL connection."
+    fi
   fi
   return 0
 }
