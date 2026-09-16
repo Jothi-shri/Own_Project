@@ -18,7 +18,7 @@ class Settings:
     jwt_secret: str = os.getenv("JWT_SECRET", "dev-super-secret-change-in-production-please-32chars")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_access_ttl_hours: float = float(os.getenv("JWT_ACCESS_TTL_HOURS", "0.25"))
-    jwt_refresh_ttl_hours: float = float(os.getenv("JWT_REFRESH_TTL_HOURS", "168"))
+    jwt_refresh_ttl_hours: float = float(os.getenv("JWT_REFRESH_TTL_HOURS", "24"))
 
     database_url: str = os.getenv("DATABASE_URL", "")
     if not database_url:
