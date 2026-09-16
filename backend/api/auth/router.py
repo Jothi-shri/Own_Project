@@ -7,14 +7,14 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, Cookie
-from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .config import settings
-from ..db.database import get_db
-from ..db.models import User
+from ..config import settings
+from ...db.database import get_db
+from ...db.models import User
+from .schemas import RegisterIn, LoginIn, AdminLoginIn, RefreshIn
 from .security import (
     create_access_token,
     create_refresh_token,
@@ -53,28 +53,6 @@ def _next_user_id(db: Session) -> str:
 
 def current_user(*args, **kwargs):
     return get_current_user(*args, **kwargs)
-
-
-class RegisterIn(BaseModel):
-    name: str
-    email: str
-    password: str
-    # NOTE: no `role` field — every self-registration is an Analyst.
-    # The DB column still exists; admins are promoted server-side only.
-
-
-class LoginIn(BaseModel):
-    email: str
-    password: str
-
-
-class AdminLoginIn(BaseModel):
-    username: str
-    password: str
-
-
-class RefreshIn(BaseModel):
-    refresh_token: str | None = None
 
 
 def _refresh_cookie_max_age() -> int:
