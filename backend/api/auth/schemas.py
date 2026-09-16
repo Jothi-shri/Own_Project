@@ -9,8 +9,6 @@ class RegisterIn(BaseModel):
     name: str
     email: str
     password: str
-    # NOTE: no `role` field — every self-registration is an Analyst.
-    # The DB column still exists; admins are promoted server-side only.
 
 
 class LoginIn(BaseModel):

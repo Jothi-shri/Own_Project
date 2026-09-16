@@ -7,8 +7,6 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 from ..api.config import settings
 
-# Centralized PostgreSQL engine — DATABASE_URL comes from .env
-# Uses psycopg (v3) driver: postgresql+psycopg://USER:PASSWORD@HOST:PORT/DB
 if not settings.database_url:
     raise RuntimeError(
         "DATABASE_URL not configured. Set it in .env as "

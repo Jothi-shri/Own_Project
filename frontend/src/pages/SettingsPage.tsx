@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useSaaSStore, type TeamMember, type Notification, type Filters } from "../store";
-import { Settings, User, Bell, Shield, Save } from "lucide-react";
+import { useSaaSStore, type TeamMember, type Notification, type Filters, type Theme } from "../store";
+import { Settings, User, Bell, Shield, Save, Sun, Moon, Waves } from "lucide-react";
 
 interface SettingsFormState {
   displayName: string;
@@ -89,6 +89,52 @@ function SettingsForm({ user, teamMember, notifications, filters, searchQuery, i
   );
 }
 
+function ThemeSelector() {
+  const theme = useSaaSStore((s) => s.theme);
+  const setTheme = useSaaSStore((s) => s.setTheme);
+  const pushToast = useSaaSStore((s) => s.pushToast);
+  const options: Array<{ value: Theme; label: string; icon: typeof Sun; desc: string }> = [
+    { value: "light", label: "Light", icon: Sun, desc: "Bright & clean" },
+    { value: "dark", label: "Dark", icon: Moon, desc: "Easy on eyes" },
+    { value: "ocean", label: "Ocean", icon: Waves, desc: "Cool blue" },
+  ];
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--code-bg)] p-4">
+      <h3 className="text-sm font-semibold text-[var(--text-h)]">Appearance</h3>
+      <p className="mt-1 text-xs text-[var(--text)]">Choose your workspace theme — updates instantly and persists after refresh.</p>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {options.map((opt) => {
+          const isActive = theme === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setTheme(opt.value);
+                pushToast({ kind: "success", title: `${opt.label} theme`, msg: `Switched to ${opt.label}` });
+              }}
+              aria-pressed={isActive}
+              aria-label={`Select ${opt.label} theme`}
+              className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                isActive
+                  ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--text-h)]"
+                  : "border-[var(--border)] bg-[var(--bg)] text-[var(--text-h)] hover:border-[var(--accent-border)] hover:bg-[var(--accent-bg)]"
+              }`}
+            >
+              <span className={`flex h-8 w-8 items-center justify-center rounded-md ${isActive ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)] text-[var(--text)]"}`}>
+                <opt.icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-sm font-medium">{opt.label}</span>
+                <span className="block text-xs text-[var(--text)]">{opt.desc}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const authenticatedUser = useSaaSStore((s) => s.user);
   const selectedTeamMember = useSaaSStore((s) => s.selectedTeamMember);
@@ -113,6 +159,9 @@ export default function SettingsPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
         <Settings size={28} style={{ color: "var(--accent)" }} />
         <h1 style={{ margin: 0, fontSize: 32 }}>Settings</h1>
+      </div>
+      <div className="mb-6 max-w-[480px]">
+        <ThemeSelector />
       </div>
       <SettingsForm
         user={authenticatedUser}

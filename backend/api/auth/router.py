@@ -104,7 +104,6 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
     if len(body.password) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
 
-    # Retry on the (very unlikely) random id collision.
     for _ in range(3):
         user = User(
             id=_next_user_id(db),
@@ -119,7 +118,6 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
             db.commit()
         except IntegrityError:
             db.rollback()
-            # Email race or id collision — re-check email, otherwise retry id.
             if db.scalar(select(User).where(func.lower(User.email) == email)):
                 raise HTTPException(409, "An account with this email already exists")
             continue

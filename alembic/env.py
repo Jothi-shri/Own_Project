@@ -6,24 +6,18 @@ import sys
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-# Ensure project root is on sys.path so `backend` is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dotenv import load_dotenv
 
-# Load .env from project root
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from backend.api.config import settings
 from backend.db.database import Base
-# Import models so they are registered on Base.metadata
 import backend.db.models  # noqa: F401
 
 config = context.config
 
-# Set sqlalchemy.url from settings if not already overridden
-# Alembic ini has placeholder; we override with real DATABASE_URL
-# Escape % for ConfigParser interpolation (e.g., passwords like Fleet%40321)
 if settings.database_url:
     safe_url = settings.database_url.replace("%", "%%")
     config.set_main_option("sqlalchemy.url", safe_url)

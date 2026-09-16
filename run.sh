@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# run.sh — one-command launcher for the complete SaaS project
-# Usage:
-#   ./run.sh                 # prepare .venv + deps and start backend + frontend
-#   ./run.sh --frontend-only # only Vite
-#   ./run.sh --backend-only  # only FastAPI
-#   ./run.sh --build         # production build
-#   ./run.sh --help
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
@@ -41,15 +34,12 @@ info()  { printf "\033[1;34m[run.sh]\033[0m %s\n" "$*"; }
 warn()  { printf "\033[1;33m[run.sh]\033[0m %s\n" "$*"; }
 die()   { printf "\033[1;31m[run.sh]\033[0m %s\n" "$*" >&2; exit 1; }
 
-# --- checks ---
 if [[ ! -d "$FRONTEND_DIR" ]]; then
   die "frontend/ not found at $FRONTEND_DIR"
 fi
 
-# Load .env if present (for DATABASE_URL etc.)
 if [[ -f "$PROJECT_ROOT/.env" ]]; then
   set -a
-  # shellcheck disable=SC1091
   source "$PROJECT_ROOT/.env"
   set +a
 fi
@@ -65,14 +55,12 @@ if [[ "$BACKEND_ONLY" == false ]]; then
   fi
 fi
 
-# --- backend setup: .venv + deps (only if missing) ---
 setup_backend() {
   if [[ ! -f "$BACKEND_DIR/main.py" && ! -f "$BACKEND_DIR/api/main.py" ]]; then
     warn "backend/main.py not found — skipping backend."
     return 1
   fi
 
-  # 1) Check .venv exists; create if missing
   if [[ ! -d "$PROJECT_ROOT/.venv" ]]; then
     info "Creating Python virtual environment at .venv/ ..."
     if command -v uv >/dev/null 2>&1; then
@@ -86,7 +74,6 @@ setup_backend() {
     PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
   fi
 
-  # 2) Install backend deps from root pyproject.toml if not already installed
   local need_sync=false
   if [[ "$FORCE_INSTALL" == true ]]; then
     need_sync=true
@@ -110,7 +97,6 @@ setup_backend() {
     info "Backend dependencies already installed — skipping uv sync."
   fi
 
-  # Run Alembic migrations if available (PostgreSQL)
   if [[ -f "$PROJECT_ROOT/alembic.ini" ]]; then
     info "Running Alembic migrations (postgresql) ..."
     if ! PYTHONPATH="$PROJECT_ROOT" "$PYTHON_BIN" -m alembic upgrade head 2>&1 | tail -n 20; then
@@ -120,7 +106,6 @@ setup_backend() {
   return 0
 }
 
-# --- frontend setup: node_modules only if missing ---
 setup_frontend() {
   if [[ "$FORCE_INSTALL" == true ]]; then
     info "Force reinstall: running npm install ..."
@@ -140,7 +125,6 @@ start_backend() {
   info "Starting FastAPI backend on http://${BACKEND_HOST}:${BACKEND_PORT} ..."
   PYTHONPATH="$PROJECT_ROOT" "$PYTHON_BIN" -m uvicorn backend.main:app --host "$BACKEND_HOST" --port "$BACKEND_PORT" --reload &
   BACKEND_PID=$!
-  # Wait for health
   for i in {1..15}; do
     if curl -sf "http://${BACKEND_HOST}:${BACKEND_PORT}/health" >/dev/null 2>&1; then
       info "Backend ready at http://${BACKEND_HOST}:${BACKEND_PORT}"
@@ -172,9 +156,7 @@ cleanup() {
   if [[ -n "${FRONTEND_PID:-}" ]]; then
     kill "$FRONTEND_PID" 2>/dev/null || true
   fi
-  # Kill any remaining child jobs (reloader, vite)
   jobs -p | xargs -r kill 2>/dev/null || true
-  # Also kill via pid file if exists (back-compat)
   if [[ -f /tmp/saas-backend.pid ]]; then
     kill "$(cat /tmp/saas-backend.pid)" 2>/dev/null || true
     rm -f /tmp/saas-backend.pid
@@ -183,7 +165,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# --- orchestration ---
 if [[ "$BACKEND_ONLY" == true ]]; then
   setup_backend
   start_backend
@@ -200,13 +181,11 @@ if [[ "$FRONTEND_ONLY" == true ]]; then
   exit 0
 fi
 
-# Default: prepare both, then start together
 info "Preparing SaaS project ..."
 
 setup_backend
 setup_frontend
 
-# Start both in background
 start_backend
 start_frontend
 
@@ -217,5 +196,4 @@ info "  Frontend → http://localhost:${PORT}"
 info "Press Ctrl+C to stop both services."
 info "----------------------------------------"
 
-# Wait for either to exit; cleanup will stop the other
 wait

@@ -13,7 +13,6 @@ router = APIRouter(prefix="/api", tags=["dashboard"])
 
 @router.get("/dashboard")
 def get_dashboard(user: User = Depends(get_current_user)):
-    # Mock stats — real implementation would query DB
     return {
         "stats": DashboardStats(
             totalProjects=12,
@@ -27,5 +26,4 @@ def get_dashboard(user: User = Depends(get_current_user)):
 
 @router.get("/me")
 def api_me(user: User = Depends(get_current_user)):
-    # Preserved from main.py for backward compatibility
     return user.public()

@@ -82,7 +82,6 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    # Optional: enforce that refresh tokens cannot be used as access tokens
     if payload.get("type") == "refresh":
         raise HTTPException(status_code=401, detail="Invalid token type")
     user_id = payload.get("sub")

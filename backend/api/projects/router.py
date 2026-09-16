@@ -12,7 +12,6 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 @router.get("")
 def list_projects(user: User = Depends(get_current_user)):
-    # Preserved behavior: returns empty list + current user
     return {"projects": [], "user": user.public()}
 
 
@@ -23,5 +22,4 @@ def get_project(project_id: str, user: User = Depends(get_current_user)):
 
 @router.post("")
 def create_project(payload: dict, user: User = Depends(get_current_user)):
-    # Stub — scalable placeholder
     return {"project": {"id": "p-new", **payload}, "user": user.public()}

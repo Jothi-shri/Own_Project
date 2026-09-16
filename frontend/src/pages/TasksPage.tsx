@@ -170,7 +170,6 @@ export default function TasksPage() {
     pushToast({ kind: "success", title: "Task created", msg: createdTask.title });
   };
   const handleUpdateTask: TasksPageProps["onUpdate"] = (taskToUpdate) => {
-    // guard for dummy filter update case
     if (!taskToUpdate.id) return;
     setTasks(taskList.map((task) => (task.id === taskToUpdate.id ? taskToUpdate : task)));
   };

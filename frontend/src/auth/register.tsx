@@ -23,6 +23,7 @@ interface RegistrationForm {
 export default function Register() {
   const navigate = useNavigate();
   const setAuthView = useSaaSStore((s) => s.setAuthView);
+  const setAuth = useSaaSStore((s) => s.setAuth);
   const pushToast = useSaaSStore((s) => s.pushToast);
   const [registrationForm, setRegistrationForm] = useState<RegistrationForm>({
     name: "",
@@ -83,12 +84,13 @@ export default function Register() {
     }
     setIsSubmitting(true);
     try {
-      await authService.register(registrationForm.name, registrationForm.email, registrationForm.password);
+      const authResponse = await authService.register(registrationForm.name, registrationForm.email, registrationForm.password);
+      setAuth(authResponse.access_token, authResponse.user);
       setIsRegistrationComplete(true);
       pushToast({
         kind: "success",
         title: "Account created",
-        msg: "You can now sign in with your credentials.",
+        msg: "Signed in — your account is persisted in PostgreSQL.",
       });
     } catch (registrationFailure: unknown) {
       const errorMessage =
@@ -105,28 +107,16 @@ export default function Register() {
     return (
       <>
         <div className="mb-8">
-          <h1
-            className="text-[28px] font-bold tracking-tight"
-            style={{ color: "var(--auth-heading)" }}
-          >
-            Account created
-          </h1>
-          <p className="text-base mt-1.5" style={{ color: "var(--auth-text)" }}>
-            Your account has been registered successfully.
-          </p>
+          <h1 className="text-[28px] font-bold tracking-tight text-[var(--auth-heading)]">Account created</h1>
+          <p className="mt-1.5 text-base text-[var(--auth-text)]">Your account has been registered successfully.</p>
         </div>
-        <div className="auth-glass-success">
-          <CheckCircle2 size={48} style={{ color: "var(--nv-green)" }} strokeWidth={1.8} />
-          <span
-            style={{ color: "var(--auth-text)" }}
-            className="text-sm text-center"
-          >
-            You can now sign in with your credentials.
-          </span>
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-[var(--auth-border)] bg-[var(--auth-input-bg)] p-6 text-center">
+          <CheckCircle2 size={48} className="text-[var(--nv-green)]" strokeWidth={1.8} />
+          <span className="text-sm text-[var(--auth-text)]">You can now sign in with your credentials.</span>
         </div>
         <button
           type="button"
-          className="auth-glass-btn !mt-1"
+          className="mt-1 flex w-full items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--auth-primary-from)] to-[var(--auth-primary-to)] py-3 text-[15px] font-bold text-white shadow-[var(--shadow)] transition hover:opacity-90"
           onClick={() => {
             setAuthView("login");
             navigate("/login");
@@ -134,11 +124,10 @@ export default function Register() {
         >
           Sign in
         </button>
-        <div className="auth-glass-divider">
+        <div className="mt-6 text-center text-sm font-semibold text-[var(--auth-text-muted)]">
           <button
             type="button"
-            className="bg-transparent border-none cursor-pointer text-sm font-semibold p-0 transition-opacity duration-150 hover:opacity-80"
-            style={{ color: "var(--auth-primary-from)" }}
+            className="cursor-pointer border-none bg-transparent p-0 text-sm font-semibold text-[var(--auth-primary-from)] transition hover:opacity-80"
             onClick={() => setIsRegistrationComplete(false)}
           >
             Register another account
@@ -151,27 +140,15 @@ export default function Register() {
   return (
     <>
       <div className="mb-8">
-        <h1
-          className="text-[28px] font-bold tracking-tight"
-          style={{ color: "var(--auth-heading)" }}
-        >
-          Create account
-        </h1>
-        <p className="text-base mt-1.5" style={{ color: "var(--auth-text)" }}>
-          Register to access the SaaS platform
-        </p>
+        <h1 className="text-[28px] font-bold tracking-tight text-[var(--auth-heading)]">Create account</h1>
+        <p className="mt-1.5 text-base text-[var(--auth-text)]">Register to access the SaaS platform</p>
       </div>
 
       <form onSubmit={handleRegistrationSubmit} className="flex flex-col gap-5">
         <div>
-          <label
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--auth-text)" }}
-          >
-            Full name
-          </label>
-          <div className="auth-glass-input-wrap">
-            <User size={18} className="auth-glass-icon" aria-hidden />
+          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Full name</label>
+          <div className="relative flex items-center">
+            <User size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
             <input
               name="name"
               type="text"
@@ -180,20 +157,15 @@ export default function Register() {
               value={registrationForm.name}
               onChange={handleRegistrationFieldChange}
               placeholder="Jane Doe"
-              className="auth-glass-input"
+              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-3 text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
             />
           </div>
         </div>
 
         <div>
-          <label
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--auth-text)" }}
-          >
-            Email address
-          </label>
-          <div className="auth-glass-input-wrap">
-            <Mail size={18} className="auth-glass-icon" aria-hidden />
+          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Email address</label>
+          <div className="relative flex items-center">
+            <Mail size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
             <input
               name="email"
               type="email"
@@ -201,20 +173,15 @@ export default function Register() {
               value={registrationForm.email}
               onChange={handleRegistrationFieldChange}
               placeholder="you@company.com"
-              className="auth-glass-input"
+              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-3 text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
             />
           </div>
         </div>
 
         <div>
-          <label
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--auth-text)" }}
-          >
-            Password
-          </label>
-          <div className="auth-glass-input-wrap">
-            <Lock size={18} className="auth-glass-icon" aria-hidden />
+          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Password</label>
+          <div className="relative flex items-center">
+            <Lock size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
             <input
               name="password"
               type={isPasswordVisible ? "text" : "password"}
@@ -222,12 +189,11 @@ export default function Register() {
               value={registrationForm.password}
               onChange={handleRegistrationFieldChange}
               placeholder="Min. 8 characters"
-              className="auth-glass-input"
-              style={{ paddingRight: "44px" }}
+              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-[42px] text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
             />
             <button
               type="button"
-              className="auth-glass-eye"
+              className="absolute right-[6px] flex h-8 w-8 items-center justify-center rounded-[7px] bg-transparent text-[var(--auth-text-muted)] hover:bg-[var(--code-bg)] hover:text-[var(--text-h)]"
               onClick={() => setIsPasswordVisible((previousVisibility) => !previousVisibility)}
               aria-label="Toggle password"
             >
@@ -236,20 +202,18 @@ export default function Register() {
           </div>
           {registrationPassword && (
             <>
-              <div className="auth-strength">
+              <div className="mt-2.5 flex gap-1.5">
                 {[1, 2, 3, 4].map((strengthSegment) => (
                   <span
                     key={strengthSegment}
                     style={{
                       background: strengthSegment <= passwordStrengthScore ? passwordStrengthColor : "var(--bg-4)",
                     }}
+                    className="h-1 flex-1 rounded-full transition"
                   />
                 ))}
               </div>
-              <span
-                className="auth-strength-lbl"
-                style={{ color: passwordStrengthColor }}
-              >
+              <span className="mt-1.5 inline-block text-xs font-bold" style={{ color: passwordStrengthColor }}>
                 {passwordStrengthLabel}
               </span>
             </>
@@ -257,14 +221,9 @@ export default function Register() {
         </div>
 
         <div>
-          <label
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--auth-text)" }}
-          >
-            Confirm password
-          </label>
-          <div className="auth-glass-input-wrap">
-            <Lock size={18} className="auth-glass-icon" aria-hidden />
+          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Confirm password</label>
+          <div className="relative flex items-center">
+            <Lock size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
             <input
               name="confirmPassword"
               type={isConfirmPasswordVisible ? "text" : "password"}
@@ -272,12 +231,11 @@ export default function Register() {
               value={registrationForm.confirmPassword}
               onChange={handleRegistrationFieldChange}
               placeholder="Re-enter password"
-              className="auth-glass-input"
-              style={{ paddingRight: "44px" }}
+              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-[42px] text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
             />
             <button
               type="button"
-              className="auth-glass-eye"
+              className="absolute right-[6px] flex h-8 w-8 items-center justify-center rounded-[7px] bg-transparent text-[var(--auth-text-muted)] hover:bg-[var(--code-bg)] hover:text-[var(--text-h)]"
               onClick={() => setIsConfirmPasswordVisible((previousVisibility) => !previousVisibility)}
               aria-label="Toggle password"
             >
@@ -285,21 +243,21 @@ export default function Register() {
             </button>
           </div>
           {registrationForm.confirmPassword && !doPasswordsMatch && (
-            <span className="auth-mismatch">Passwords do not match</span>
+            <span className="mt-1.5 block text-xs font-semibold text-[var(--red)]">Passwords do not match</span>
           )}
         </div>
 
         {registrationError && (
-          <div className="auth-glass-error">
+          <div className="flex items-center gap-2 rounded-[10px] border border-[var(--auth-error-border)] bg-[var(--auth-error-bg)] p-3 text-sm font-semibold text-[var(--auth-error-text)]">
             <TriangleAlert size={16} className="shrink-0" aria-hidden />
             {registrationError}
           </div>
         )}
 
-        <button type="submit" className="auth-glass-btn" disabled={isSubmitting}>
+        <button type="submit" className="flex w-full items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--auth-primary-from)] to-[var(--auth-primary-to)] py-3 text-[15px] font-bold text-white shadow-[var(--shadow)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-65" disabled={isSubmitting}>
           {isSubmitting ? (
             <span className="inline-flex items-center justify-center gap-2">
-              <span className="auth-glass-spinner" />
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               Creating account…
             </span>
           ) : (
@@ -308,12 +266,11 @@ export default function Register() {
         </button>
       </form>
 
-      <div className="auth-glass-divider">
+      <div className="mt-6 text-center text-sm font-semibold text-[var(--auth-text-muted)]">
         Already have an account?{" "}
         <button
           type="button"
-          className="bg-transparent border-none cursor-pointer text-sm font-semibold p-0 transition-opacity duration-150 hover:opacity-80"
-          style={{ color: "var(--auth-primary-from)" }}
+          className="cursor-pointer border-none bg-transparent p-0 text-sm font-semibold text-[var(--auth-primary-from)] transition hover:opacity-80"
           onClick={() => {
             setAuthView("login");
             navigate("/login");

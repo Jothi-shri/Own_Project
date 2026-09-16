@@ -17,5 +17,4 @@ def get_settings(user: User = Depends(get_current_user)):
 
 @router.put("")
 def update_settings(payload: dict, user: User = Depends(get_current_user)):
-    # Stub — echoes payload
     return {"settings": payload, "user": user.public()}

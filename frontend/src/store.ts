@@ -13,30 +13,98 @@ export interface SaaSFeature {
   capabilities: string[];
   roadmap?: string | null;
 }
-// Backwards-compat alias — prefers SaaS naming
 export type StoredFeature = SaaSFeature;
 
-// UI color themes. "dark" is the default SaaS palette in styles.css
-// (:root); the others are applied as [data-theme="…"] overrides.
-export type Theme = "dark" | "light" | "ocean" | "nebula";
+export type Theme = "dark" | "light" | "ocean";
 const THEME_KEY = "saas-theme";
 
 function loadTheme(): Theme {
   if (typeof localStorage === "undefined") return "dark";
-  const t = localStorage.getItem(THEME_KEY) as Theme | null;
-  return t === "light" || t === "ocean" || t === "nebula" ? t : "dark";
+  const raw = localStorage.getItem(THEME_KEY);
+  return raw === "light" || raw === "ocean" ? (raw as Theme) : "dark";
 }
 
+const themeVars: Record<Theme, Record<string, string>> = {
+  light: {
+    "--text": "#6b6375",
+    "--text-h": "#08060d",
+    "--bg": "#fff",
+    "--border": "#e5e4e7",
+    "--code-bg": "#f4f3ec",
+    "--accent": "#aa3bff",
+    "--accent-bg": "rgba(170, 59, 255, 0.1)",
+    "--accent-border": "rgba(170, 59, 255, 0.5)",
+    "--social-bg": "rgba(244, 243, 236, 0.5)",
+    "--shadow": "rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px",
+    "--auth-text-muted": "#9a96a6",
+    "--auth-input-bg": "#f4f3ec",
+    "--auth-error-bg": "#fef2f2",
+    "--auth-error-border": "#fecaca",
+    "--auth-error-text": "#dc2626",
+    "--bg-4": "#e7e5e4",
+  },
+  dark: {
+    "--text": "#9ca3af",
+    "--text-h": "#f3f4f6",
+    "--bg": "#16171d",
+    "--border": "#2e303a",
+    "--code-bg": "#1f2028",
+    "--accent": "#c084fc",
+    "--accent-bg": "rgba(192, 132, 252, 0.15)",
+    "--accent-border": "rgba(192, 132, 252, 0.5)",
+    "--social-bg": "rgba(47, 48, 58, 0.5)",
+    "--shadow": "rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px",
+    "--auth-text-muted": "#9ca3af",
+    "--auth-input-bg": "#1f2028",
+    "--auth-error-bg": "rgba(220, 38, 38, 0.12)",
+    "--auth-error-border": "rgba(220, 38, 38, 0.35)",
+    "--auth-error-text": "#f87171",
+    "--bg-4": "#2e303a",
+  },
+  ocean: {
+    "--text": "#475569",
+    "--text-h": "#0f172a",
+    "--bg": "#f0f9ff",
+    "--border": "#cbd5e1",
+    "--code-bg": "#e0f2fe",
+    "--accent": "#0ea5e9",
+    "--accent-bg": "rgba(14, 165, 233, 0.12)",
+    "--accent-border": "rgba(14, 165, 233, 0.35)",
+    "--social-bg": "rgba(224, 242, 254, 0.7)",
+    "--shadow": "rgba(14, 165, 233, 0.15) 0 8px 20px -4px, rgba(14, 165, 233, 0.08) 0 4px 8px -2px",
+    "--auth-text-muted": "#64748b",
+    "--auth-input-bg": "#ffffff",
+    "--auth-error-bg": "#fef2f2",
+    "--auth-error-border": "#fecaca",
+    "--auth-error-text": "#dc2626",
+    "--bg-4": "#e0f2fe",
+  },
+};
+
 export function applyTheme(theme: Theme) {
-  if (typeof document !== "undefined")
-    document.documentElement.setAttribute("data-theme", theme);
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.setAttribute("data-theme", theme);
+  root.style.transition = "background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease";
+  const vars = themeVars[theme];
+  Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+  root.style.setProperty("--auth-heading", "var(--text-h)");
+  root.style.setProperty("--auth-text", "var(--text)");
+  root.style.setProperty("--auth-primary-from", "var(--accent)");
+  root.style.setProperty("--auth-primary-to", "#7c3aed");
+  root.style.setProperty("--auth-border", "var(--border)");
+  root.style.setProperty("--sans", 'system-ui, "Segoe UI", Roboto, sans-serif');
+  root.style.setProperty("--heading", 'system-ui, "Segoe UI", Roboto, sans-serif');
+  root.style.setProperty("--mono", 'ui-monospace, Consolas, monospace');
+  document.body.style.background = "var(--bg)";
+  document.body.style.color = "var(--text)";
+  document.body.style.transition = "background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease";
 }
 
 const initialTheme = loadTheme();
-applyTheme(initialTheme); // apply before first paint to avoid a theme flash
+applyTheme(initialTheme);
 
 const initialUser = authService.loadUser();
-// Access token is memory-only per secure flow — never persisted to localStorage
 const initialAccessToken: string | null = null;
 const PAGE_KEY = "saas-page";
 function loadPage(): string {
@@ -44,10 +112,6 @@ function loadPage(): string {
   return localStorage.getItem(PAGE_KEY) || "dashboard";
 }
 
-// Admin session flag — tracks whether the current authenticated session
-// was established via the admin login flow. Persisted so a refresh keeps
-// the correct routing (admin via /admin -> admin dashboard, admin via normal
-// login -> normal dashboard).
 const ADMIN_SESSION_KEYS = [
   "is_admin_session",
   "admin_session",
@@ -91,7 +155,6 @@ export interface WorkspaceEntityState {
   integrations?: IntegrationConfig[];
 }
 
-// --- SaaS domain models (consistent prop naming) ---
 export interface Project {
   id: string;
   name: string;
@@ -190,7 +253,6 @@ interface SaaSStore {
   workspaceId: string;
   connected: boolean;
 
-  // features loaded from the backend API
   dbFeatures: SaaSFeature[];
   setDbFeatures: (features: SaaSFeature[]) => void;
   workspaceEntities: Record<string, WorkspaceEntityState>;
@@ -199,29 +261,23 @@ interface SaaSStore {
   selectedWorkspaceEntityId: string | null;
   followSelected: boolean;
 
-  // auth — accessToken is memory-only (not localStorage), refresh token in HttpOnly cookie
   accessToken: string | null;
   user: AuthUser | null;
   isAdminSession: boolean;
   authView: "login" | "register" | "admin";
 
-  // transient UI feedback
   toasts: Toast[];
   cmdkOpen: boolean;
 
-  // navigation
   page: string; // active feature page id (see features.ts)
   navCollapsed: boolean;
 
-  // appearance
   theme: Theme;
 
-  // dashboard / rendering (SaaS)
   dashboardViewMode: DashboardViewMode;
   render: RenderSettings;
   fps: number;
   simClock: number; // seconds of sim time elapsed (advances while connected)
-  // live preview toggle — when true, SaaS dashboard renders live preview
   livePreviewEnabled: boolean;
   setLivePreviewEnabled: (shouldUseLivePreview: boolean) => void;
 
@@ -258,7 +314,6 @@ interface SaaSStore {
   integrationError: string | null;
   fetchIntegrations: (selectedIntegrationType: string) => Promise<void>;
 
-  // --- SaaS domain state (consistent naming across all pages) ---
   projects: Project[];
   selectedProject: Project | null;
   tasks: Task[];
@@ -338,7 +393,6 @@ export const useSaaSStore = create<SaaSStore>((set, get) => ({
   setCmdkOpen: (isCommandPaletteOpen) => set({ cmdkOpen: isCommandPaletteOpen }),
   setAccessToken: (token) => set({ accessToken: token }),
   setAuth: (authToken: string, refreshTokenOrUser: any, authenticatedUserOrIsAdmin?: any, isAdminSession = false) => {
-    // Support both legacy (token, refresh, user) and new (token, user)
     let user: AuthUser | null = null;
     let isAdmin = false;
     if (typeof refreshTokenOrUser === "object" && refreshTokenOrUser !== null && "email" in refreshTokenOrUser) {
@@ -349,7 +403,6 @@ export const useSaaSStore = create<SaaSStore>((set, get) => ({
       isAdmin = Boolean(isAdminSession);
     }
     if (!user) return;
-    // Persist user (not token) for UI, token stays memory-only
     authService.persist(authToken, "", user);
     persistIsAdminSession(isAdmin);
     set({ accessToken: authToken, user, isAdminSession: isAdmin });
@@ -365,13 +418,10 @@ export const useSaaSStore = create<SaaSStore>((set, get) => ({
   initializeAuth: async () => {
     const { accessToken, user } = get();
     if (accessToken && user) return;
-    // Try to refresh via HttpOnly cookie
     const newToken = await authService.refresh();
     if (!newToken) {
-      // No valid refresh cookie — stay logged out
       return;
     }
-    // Fetch user with new token
     const me = await authService.fetchMe(newToken);
     if (me) {
       authService.persist(newToken, "", me);
@@ -454,7 +504,6 @@ export const useSaaSStore = create<SaaSStore>((set, get) => ({
     }
   },
 
-  // SaaS initial state
   projects: [],
   selectedProject: null,
   tasks: [],

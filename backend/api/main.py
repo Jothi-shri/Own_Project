@@ -15,8 +15,6 @@ from .notifications.router import router as notifications_router
 from .settings.router import router as settings_router
 from .config import settings
 
-# NOTE: Tables are managed by Alembic migrations (alembic upgrade head)
-# Do not use Base.metadata.create_all here for PostgreSQL.
 
 app = FastAPI(title="SaaS API", version="0.1.0")
 
@@ -28,11 +26,8 @@ app.add_middleware(
     allow_headers=settings.cors_allow_headers,
 )
 
-# Auth stays separate — JWT + HttpOnly refresh cookie flow
 app.include_router(auth_router)
 
-# Feature routers — each SaaS page/feature owns its folder
-# Scalable: to add a new feature, create backend/api/<feature>/ with router.py and include here.
 app.include_router(dashboard_router)
 app.include_router(projects_router)
 app.include_router(tasks_router)

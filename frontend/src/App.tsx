@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, NavLink } from "react-router-dom";
 import { useEffect } from "react";
-import { useSaaSStore } from "./store";
+import { useSaaSStore, applyTheme } from "./store";
 
 import Login from "./auth/login";
 import Register from "./auth/register";
@@ -27,8 +27,8 @@ function AuthLayout() {
   const selectedAuthView = useSaaSStore((s) => s.authView);
   const isRegisterView = selectedAuthView === "register";
   return (
-    <div className="auth-page">
-      <div className="auth-card">{isRegisterView ? <Register /> : <Login />}</div>
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] p-8">
+      <div className="w-full max-w-[440px] text-left">{isRegisterView ? <Register /> : <Login />}</div>
     </div>
   );
 }
@@ -39,8 +39,8 @@ function RegisterPage() {
     setSelectedAuthView("register");
   }, [setSelectedAuthView]);
   return (
-    <div className="auth-page">
-      <div className="auth-card">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] p-8">
+      <div className="w-full max-w-[440px] text-left">
         <Register />
       </div>
     </div>
@@ -60,16 +60,22 @@ function ToastStack() {
   const dismissToastNotification = useSaaSStore((s) => s.dismissToast);
   if (toastNotifications.length === 0) return null;
   return (
-    <div className="toast-stack">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[9999] flex flex-col gap-2">
       {toastNotifications.map((toastNotification) => (
         <div
           key={toastNotification.id}
-          className={`toast toast--${toastNotification.kind}`}
           onClick={() => dismissToastNotification(toastNotification.id)}
           role="status"
+          className={`pointer-events-auto min-w-[280px] max-w-[360px] rounded-[10px] border bg-[var(--code-bg)] p-3 text-sm shadow-[var(--shadow)] ${
+            toastNotification.kind === "success"
+              ? "border-[rgba(34,197,94,0.35)]"
+              : toastNotification.kind === "error"
+                ? "border-[rgba(239,68,68,0.35)]"
+                : "border-[var(--accent-border)]"
+          }`}
         >
-          <div className="toast-title">{toastNotification.title}</div>
-          {toastNotification.msg && <div className="toast-msg">{toastNotification.msg}</div>}
+          <div className="font-bold text-[var(--text-h)]">{toastNotification.title}</div>
+          {toastNotification.msg && <div className="font-medium text-[var(--text)]">{toastNotification.msg}</div>}
         </div>
       ))}
     </div>
@@ -85,7 +91,6 @@ function SaaSNavigation() {
 
   const handleLogout = () => {
     logout();
-    // store logout clears access_token + user; force redirect to "/" per spec
     window.location.href = "/";
   };
 
@@ -140,12 +145,15 @@ function SaaSNavigation() {
 
 export default function App() {
   const authenticatedUser = useSaaSStore((s) => s.user);
+  const theme = useSaaSStore((s) => s.theme);
   useEffect(() => {
-    // On page refresh, accessToken is memory-only and lost — try to restore via HttpOnly refresh cookie
+    applyTheme(theme);
+  }, [theme]);
+  useEffect(() => {
     useSaaSStore.getState().initializeAuth();
   }, []);
   return (
-    <>
+    <div className="mx-auto flex min-h-screen w-full max-w-[1126px] flex-col border-x border-[var(--border)] bg-[var(--bg)] text-[var(--text)]">
       <SaaSNavigation />
       <Routes>
         <Route path="/login" element={authenticatedUser ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
@@ -164,6 +172,6 @@ export default function App() {
         <Route path="*" element={<Navigate to={authenticatedUser ? "/dashboard" : "/login"} replace />} />
       </Routes>
       <ToastStack />
-    </>
+    </div>
   );
 }

@@ -7,10 +7,8 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Load .env from project root (backend/api -> backend -> root)
 _project_root = Path(__file__).resolve().parents[2]
 load_dotenv(_project_root / ".env", override=False)
-# Also try parent search for robustness
 load_dotenv(override=False)
 
 def _env_bool(name: str, default: str = "false") -> bool:
@@ -22,13 +20,8 @@ class Settings:
     jwt_access_ttl_hours: float = float(os.getenv("JWT_ACCESS_TTL_HOURS", "0.25"))
     jwt_refresh_ttl_hours: float = float(os.getenv("JWT_REFRESH_TTL_HOURS", "168"))
 
-    # PostgreSQL — required, loaded from .env via DATABASE_URL
-    # Example: postgresql+psycopg://USER:PASSWORD@HOST:PORT/DATABASE
     database_url: str = os.getenv("DATABASE_URL", "")
-    # Fail fast if not configured — prevents silent SQLite fallback
     if not database_url:
-        # No hard-coded fallback to SQLite; user must set DATABASE_URL in .env
-        # For local dev the .env file provides: postgresql+psycopg://shobot:postgres@localhost:5432/saas
         database_url = ""
 
     refresh_cookie_name: str = os.getenv("REFRESH_COOKIE_NAME", "refresh_token")
@@ -55,12 +48,9 @@ class Settings:
             raise RuntimeError(f"DATABASE_URL must be a PostgreSQL URL, got: {self.database_url}")
 
 settings = Settings()
-# Validate on import (fail fast in production); allow import in tools that mock?
 try:
     settings.validate()
 except RuntimeError as e:
-    # Only warn during import; actual DB connection will fail later if not set
-    # Keeps `alembic` and tests from crashing before .env is loaded
     if os.getenv("ALEMBIC_BYPASS_VALIDATION") != "1":
         import warnings
         warnings.warn(str(e))
