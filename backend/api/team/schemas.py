@@ -9,3 +9,5 @@ class TeamMemberCreate(BaseModel):
     name: str
     email: str
     role: str = "Analyst"
+    status: str = "invited"
+    avatarUrl: str | None = None

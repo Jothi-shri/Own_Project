@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useSaaSStore, type Analytics, type DashboardStats, type Activity } from "../store";
+import { apiClient } from "../api/apiClient";
 import { BarChart3, TrendingUp, Users, FolderKanban, Activity as ActivityIcon } from "lucide-react";
 
 interface AnalyticsCardProps {
@@ -78,34 +80,52 @@ function AnalyticsCard({ analytics, dashboardStats, activity, isLoading }: Analy
   );
 }
 
-const mockAnalytics: Analytics = {
-  totalProjects: 12,
-  completedTasks: 87,
-  activeTeamMembers: 8,
-  revenueGrowth: 14.2,
-  tasksCompletedOverTime: [5, 8, 12, 9, 15],
-  revenueByProject: [
-    { projectName: "Atlas CRM", revenue: 42000 },
-    { projectName: "Pulse Analytics", revenue: 31000 },
-    { projectName: "Beacon Launch", revenue: 18000 },
-  ],
-};
-
-const mockActivity: Activity[] = [
-  { id: "a1", teamMemberId: "tm1", teamMemberName: "Alex Morgan", action: "completed task 'Design onboarding flow'", projectId: "p1", taskId: "t1", timestamp: new Date().toISOString() },
-  { id: "a2", teamMemberId: "tm2", teamMemberName: "Jamie Chen", action: "created project 'Pulse Analytics'", projectId: "p4", taskId: null, timestamp: new Date(Date.now() - 3600000).toISOString() },
-  { id: "a3", teamMemberId: "tm3", teamMemberName: "Samir Patel", action: "commented on task 'QA analytics dashboard'", projectId: "p4", taskId: "t3", timestamp: new Date(Date.now() - 7200000).toISOString() },
-];
-
 export default function AnalyticsPage() {
   const analytics = useSaaSStore((s) => s.analytics);
   const dashboardStats = useSaaSStore((s) => s.dashboardStats);
   const activity = useSaaSStore((s) => s.activity);
   const isLoading = useSaaSStore((s) => s.isLoading);
+  const setAnalytics = useSaaSStore((s) => s.setAnalytics);
+  const setActivity = useSaaSStore((s) => s.setActivity);
+  const setIsLoading = useSaaSStore((s) => s.setIsLoading);
+  const pushToast = useSaaSStore((s) => s.pushToast);
 
-  const analyticsReport = analytics ?? mockAnalytics;
-  const dashboardStatsReport = dashboardStats ?? mockAnalytics;
-  const activityFeed = activity.length ? activity : mockActivity;
+  const [isFetching, setIsFetching] = useState(true);
+
+  const fetchAnalytics = async () => {
+    setIsFetching(true);
+    setIsLoading(true);
+    try {
+      const data: any = await apiClient("/api/analytics");
+      if (data.analytics) setAnalytics(data.analytics);
+      if (data.activity) setActivity(data.activity);
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Failed to load analytics", msg: e.message });
+    } finally {
+      setIsFetching(false);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  const analyticsReport = analytics ?? { totalProjects: 0, completedTasks: 0, activeTeamMembers: 0, revenueGrowth: 0, tasksCompletedOverTime: [], revenueByProject: [] };
+  const dashboardStatsReport = dashboardStats ?? analyticsReport;
+  const activityFeed = activity;
+
+  if (isFetching && !analyticsReport) {
+    return (
+      <div style={{ padding: 32, textAlign: "left" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <BarChart3 size={28} style={{ color: "var(--accent)" }} />
+          <h1 style={{ margin: 0, fontSize: 32 }}>Analytics</h1>
+        </div>
+        <div style={{ padding: 16 }}>Loading analytics…</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 32, textAlign: "left" }}>

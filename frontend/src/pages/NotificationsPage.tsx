@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSaaSStore, type Notification } from "../store";
+import { apiClient } from "../api/apiClient";
 import { Bell, Check, Trash2, AlertCircle } from "lucide-react";
 
 interface NotificationItemProps {
@@ -48,12 +49,6 @@ interface NotificationsPageProps {
   onDelete: (notificationToDelete: Notification) => void;
 }
 
-const mockNotifications: Notification[] = [
-  { id: "n1", title: "New comment on Atlas CRM", message: "Alex Morgan commented: 'Looks great — let's ship'", type: "info", read: false, createdAt: new Date().toISOString(), projectId: "p1" },
-  { id: "n2", title: "Task overdue", message: "Task 'Integrate billing webhook' is overdue by 2 days", type: "warning", read: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: "n3", title: "Invite accepted", message: "Jamie Chen joined your team", type: "success", read: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
-];
-
 function NotificationsContent({ notifications, isLoading, onUpdate, onDelete }: NotificationsPageProps) {
   const unreadNotificationCount = useMemo(() => notifications.filter((notification) => !notification.read).length, [notifications]);
 
@@ -65,7 +60,12 @@ function NotificationsContent({ notifications, isLoading, onUpdate, onDelete }: 
         <span>{notifications.length} total • {unreadNotificationCount} unread</span>
         {unreadNotificationCount > 0 && (
           <button
-            onClick={() => notifications.filter((n) => !n.read).forEach((unreadNotification) => onUpdate({ ...unreadNotification, read: true }))}
+            onClick={async () => {
+              try {
+                await apiClient("/api/notifications/mark-all-read", {}, "POST");
+                notifications.filter((n) => !n.read).forEach((unreadNotification) => onUpdate({ ...unreadNotification, read: true }));
+              } catch {}
+            }}
             style={{ border: "none", background: "transparent", color: "var(--accent)", cursor: "pointer", fontWeight: 700, fontSize: 12 }}
           >
             Mark all read
@@ -84,21 +84,49 @@ function NotificationsContent({ notifications, isLoading, onUpdate, onDelete }: 
 
 export default function NotificationsPage() {
   const notifications = useSaaSStore((s) => s.notifications);
-  const isLoading = useSaaSStore((s) => s.isLoading);
   const setNotifications = useSaaSStore((s) => s.setNotifications);
+  const setIsLoading = useSaaSStore((s) => s.setIsLoading);
   const pushToast = useSaaSStore((s) => s.pushToast);
 
-  const notificationList = notifications.length ? notifications : mockNotifications;
+  const [isLoading, setLocalLoading] = useState(true);
 
-  const handleUpdateNotification: NotificationsPageProps["onUpdate"] = (notificationToUpdate) => {
-    const updatedNotifications = notificationList.map((notification) => (notification.id === notificationToUpdate.id ? notificationToUpdate : notification));
-    setNotifications(updatedNotifications);
-    pushToast({ kind: "success", title: "Notification updated", msg: notificationToUpdate.title });
+  const fetchNotifications = async () => {
+    setLocalLoading(true);
+    setIsLoading(true);
+    try {
+      const data: any = await apiClient("/api/notifications");
+      setNotifications(data.notifications ?? []);
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Failed to load notifications", msg: e.message });
+    } finally {
+      setLocalLoading(false);
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteNotification: NotificationsPageProps["onDelete"] = (notificationToDelete) => {
-    setNotifications(notificationList.filter((notification) => notification.id !== notificationToDelete.id));
-    pushToast({ kind: "warn", title: "Notification removed", msg: notificationToDelete.title });
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const handleUpdateNotification: NotificationsPageProps["onUpdate"] = async (notificationToUpdate) => {
+    try {
+      const data: any = await apiClient(`/api/notifications/${notificationToUpdate.id}`, { read: notificationToUpdate.read }, "PUT");
+      const updated: Notification = data.notification;
+      setNotifications(notifications.map((notification) => (notification.id === updated.id ? updated : notification)));
+      pushToast({ kind: "success", title: "Notification updated", msg: updated.title });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Update failed", msg: e.message });
+    }
+  };
+
+  const handleDeleteNotification: NotificationsPageProps["onDelete"] = async (notificationToDelete) => {
+    try {
+      await apiClient(`/api/notifications/${notificationToDelete.id}`, undefined, "DELETE");
+      setNotifications(notifications.filter((notification) => notification.id !== notificationToDelete.id));
+      pushToast({ kind: "warn", title: "Notification removed", msg: notificationToDelete.title });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Delete failed", msg: e.message });
+    }
   };
 
   return (
@@ -107,7 +135,7 @@ export default function NotificationsPage() {
         <Bell size={28} style={{ color: "var(--accent)" }} />
         <h1 style={{ margin: 0, fontSize: 32 }}>Notifications</h1>
       </div>
-      <NotificationsContent notifications={notificationList} isLoading={isLoading} onUpdate={handleUpdateNotification} onDelete={handleDeleteNotification} />
+      <NotificationsContent notifications={notifications} isLoading={isLoading} onUpdate={handleUpdateNotification} onDelete={handleDeleteNotification} />
     </div>
   );
 }

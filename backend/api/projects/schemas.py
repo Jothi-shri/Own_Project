@@ -9,6 +9,7 @@ class ProjectCreate(BaseModel):
     name: str
     description: str = ""
     status: str = "planning"
+    revenue: int | None = None
 
 
 class Project(BaseModel):

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSaaSStore, type TeamMember, type Notification, type Filters, type Theme } from "../store";
+import { apiClient } from "../api/apiClient";
 import { Settings, User, Bell, Shield, Save, Sun, Moon, Waves } from "lucide-react";
 
 interface SettingsFormState {
@@ -146,12 +147,31 @@ export default function SettingsPage() {
   const setIsSubmitting = useSaaSStore((s) => s.setIsSubmitting);
   const pushToast = useSaaSStore((s) => s.pushToast);
 
-  const handleUpdateSettings: SettingsPageProps["onUpdate"] = (updatedSettings) => {
+  const fetchSettings = async () => {
+    try {
+      const data: any = await apiClient("/api/settings");
+      if (data.settings) {
+        pushToast({ kind: "info", title: "Settings loaded", msg: "Settings fetched from server" });
+      }
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Failed to load settings", msg: e.message });
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const handleUpdateSettings: SettingsPageProps["onUpdate"] = async (updatedSettings) => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await apiClient("/api/settings", updatedSettings, "PUT");
       pushToast({ kind: "success", title: "Settings saved", msg: `Updated ${updatedSettings.displayName}` });
-    }, 600);
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Save failed", msg: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

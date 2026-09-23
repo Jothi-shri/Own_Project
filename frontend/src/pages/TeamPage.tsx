@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSaaSStore, type TeamMember, type Filters } from "../store";
+import { apiClient } from "../api/apiClient";
 import { Users, Search, Mail, Shield, UserPlus, Trash2 } from "lucide-react";
 
 interface TeamMemberCardProps {
@@ -67,13 +68,6 @@ interface TeamPageProps {
   onSelect: (selectedTeamMember: TeamMember) => void;
 }
 
-const mockTeamMembers: TeamMember[] = [
-  { id: "tm1", name: "Alex Morgan", email: "alex@saas.co", role: "Supervisor", status: "active" },
-  { id: "tm2", name: "Jamie Chen", email: "jamie@saas.co", role: "Analyst", status: "active" },
-  { id: "tm3", name: "Samir Patel", email: "samir@saas.co", role: "Technician", status: "invited" },
-  { id: "tm4", name: "Riley Sato", email: "riley@saas.co", role: "Admin", status: "offline" },
-];
-
 function TeamContent({ teamMembers, selectedTeamMember, searchQuery, filters: _filters, currentPage, isLoading, isSubmitting, onCreate, onUpdate, onDelete, onSelect }: TeamPageProps) {
   const [teamSearchQuery, setTeamSearchQuery] = useState(searchQuery);
 
@@ -103,7 +97,7 @@ function TeamContent({ teamMembers, selectedTeamMember, searchQuery, filters: _f
           />
         </div>
         <button
-          onClick={() => onCreate({ name: `New Member ${teamMembers.length + 1}`, email: `new${teamMembers.length + 1}@saas.co`, role: "Analyst", status: "invited" })}
+          onClick={() => onCreate({ name: `New Member ${teamMembers.length + 1}`, email: `new${teamMembers.length + 1}_${Date.now()}@saas.co`, role: "Analyst", status: "invited" })}
           disabled={isSubmitting}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#fff", cursor: "pointer", fontWeight: 700 }}
         >
@@ -135,27 +129,66 @@ export default function TeamPage() {
   const searchQuery = useSaaSStore((s) => s.searchQuery);
   const filters = useSaaSStore((s) => s.filters);
   const currentPage = useSaaSStore((s) => s.currentPage);
-  const isLoading = useSaaSStore((s) => s.isLoading);
   const isSubmitting = useSaaSStore((s) => s.isSubmitting);
   const setTeamMembers = useSaaSStore((s) => s.setTeamMembers);
   const setSelectedTeamMember = useSaaSStore((s) => s.setSelectedTeamMember);
+  const setIsSubmitting = useSaaSStore((s) => s.setIsSubmitting);
+  const setIsLoading = useSaaSStore((s) => s.setIsLoading);
   const pushToast = useSaaSStore((s) => s.pushToast);
 
-  const teamMemberList = teamMembers.length ? teamMembers : mockTeamMembers;
+  const [isLoading, setLocalLoading] = useState(true);
 
-  const handleCreateTeamMember: TeamPageProps["onCreate"] = (newTeamMember) => {
-    const createdTeamMember: TeamMember = { id: `tm${Date.now()}`, ...newTeamMember };
-    setTeamMembers([createdTeamMember, ...teamMemberList]);
-    pushToast({ kind: "success", title: "Invite sent", msg: createdTeamMember.email });
+  const fetchTeam = async () => {
+    setLocalLoading(true);
+    setIsLoading(true);
+    try {
+      const data: any = await apiClient("/api/team");
+      const list: TeamMember[] = data.members ?? data.teamMembers ?? [];
+      setTeamMembers(list);
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Failed to load team", msg: e.message });
+    } finally {
+      setLocalLoading(false);
+      setIsLoading(false);
+    }
   };
-  const handleUpdateTeamMember: TeamPageProps["onUpdate"] = (teamMemberToUpdate) => {
-    setTeamMembers(teamMemberList.map((teamMember) => (teamMember.id === teamMemberToUpdate.id ? teamMemberToUpdate : teamMember)));
-    pushToast({ kind: "info", title: "Member updated", msg: teamMemberToUpdate.name });
+
+  useEffect(() => {
+    fetchTeam();
+  }, []);
+
+  const handleCreateTeamMember: TeamPageProps["onCreate"] = async (newTeamMember) => {
+    setIsSubmitting(true);
+    try {
+      const data: any = await apiClient("/api/team", newTeamMember, "POST");
+      const created: TeamMember = data.member;
+      setTeamMembers([created, ...teamMembers]);
+      pushToast({ kind: "success", title: "Invite sent", msg: created.email });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Invite failed", msg: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  const handleDeleteTeamMember: TeamPageProps["onDelete"] = (teamMemberToDelete) => {
-    setTeamMembers(teamMemberList.filter((teamMember) => teamMember.id !== teamMemberToDelete.id));
-    if (selectedTeamMember?.id === teamMemberToDelete.id) setSelectedTeamMember(null);
-    pushToast({ kind: "warn", title: "Member removed", msg: teamMemberToDelete.name });
+  const handleUpdateTeamMember: TeamPageProps["onUpdate"] = async (teamMemberToUpdate) => {
+    try {
+      const data: any = await apiClient(`/api/team/${teamMemberToUpdate.id}`, teamMemberToUpdate, "PUT");
+      const updated: TeamMember = data.member;
+      setTeamMembers(teamMembers.map((teamMember) => (teamMember.id === updated.id ? updated : teamMember)));
+      pushToast({ kind: "info", title: "Member updated", msg: updated.name });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Update failed", msg: e.message });
+    }
+  };
+  const handleDeleteTeamMember: TeamPageProps["onDelete"] = async (teamMemberToDelete) => {
+    try {
+      await apiClient(`/api/team/${teamMemberToDelete.id}`, undefined, "DELETE");
+      setTeamMembers(teamMembers.filter((teamMember) => teamMember.id !== teamMemberToDelete.id));
+      if (selectedTeamMember?.id === teamMemberToDelete.id) setSelectedTeamMember(null);
+      pushToast({ kind: "warn", title: "Member removed", msg: teamMemberToDelete.name });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Delete failed", msg: e.message });
+    }
   };
   const handleSelectTeamMember: TeamPageProps["onSelect"] = (teamMemberToSelect) => {
     setSelectedTeamMember(teamMemberToSelect);
@@ -168,7 +201,7 @@ export default function TeamPage() {
         <h1 style={{ margin: 0, fontSize: 32 }}>Team</h1>
       </div>
       <TeamContent
-        teamMembers={teamMemberList}
+        teamMembers={teamMembers}
         selectedTeamMember={selectedTeamMember}
         searchQuery={searchQuery}
         filters={filters}

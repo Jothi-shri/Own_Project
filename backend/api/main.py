@@ -13,6 +13,7 @@ from .team.router import router as team_router
 from .analytics.router import router as analytics_router
 from .notifications.router import router as notifications_router
 from .settings.router import router as settings_router
+from .activities.router import router as activities_router
 from .config import settings
 
 
@@ -35,6 +36,7 @@ app.include_router(team_router)
 app.include_router(analytics_router)
 app.include_router(notifications_router)
 app.include_router(settings_router)
+app.include_router(activities_router)
 
 
 @app.get("/health")

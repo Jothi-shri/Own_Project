@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSaaSStore, type Task, type Project, type Filters } from "../store";
+import { apiClient } from "../api/apiClient";
 import { ClipboardList, Plus, Search, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 
 interface TaskRowProps {
@@ -24,7 +25,7 @@ function TaskRow({ task, project, onUpdate, onDelete, onSelect }: TaskRowProps) 
         </div>
         <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>{task.description}</div>
         <div style={{ fontSize: 11, color: "var(--auth-text-muted)", marginTop: 4 }}>
-          Project: {project?.name ?? task.projectId} • Priority: {task.priority} • Due: {task.dueDate ?? "—"}
+          Project: {project?.name ?? task.projectId} • Priority: {task.priority} • Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}
         </div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
@@ -54,6 +55,7 @@ function TaskRow({ task, project, onUpdate, onDelete, onSelect }: TaskRowProps) 
 
 interface TasksPageProps {
   tasks: Task[];
+  projects: Project[];
   selectedProject: Project | null;
   searchQuery: string;
   filters: Filters;
@@ -66,18 +68,7 @@ interface TasksPageProps {
   onSelect: (selectedTask: Task) => void;
 }
 
-const mockTasks: Task[] = [
-  { id: "t1", title: "Design onboarding flow", description: "Wireframes for new signup", projectId: "p1", assigneeId: "tm1", status: "in_progress", priority: "high", dueDate: "2026-09-20" },
-  { id: "t2", title: "Integrate billing webhook", description: "Stripe events to analytics", projectId: "p1", assigneeId: "tm2", status: "todo", priority: "medium", dueDate: "2026-09-28" },
-  { id: "t3", title: "QA analytics dashboard", description: "Test revenue charts", projectId: "p4", assigneeId: "tm3", status: "done", priority: "low", dueDate: "2026-09-10" },
-];
-
-const mockProjectsForTasks: Project[] = [
-  { id: "p1", name: "Atlas CRM", description: "CRM", status: "active", ownerId: "u1", createdAt: "2026-01-10", updatedAt: "2026-09-01" },
-  { id: "p4", name: "Pulse Analytics", description: "Analytics", status: "active", ownerId: "u1", createdAt: "2026-03-18", updatedAt: "2026-09-10" },
-];
-
-function TasksContent({ tasks, selectedProject, searchQuery, filters, currentPage, isLoading, isSubmitting, onCreate, onUpdate, onDelete, onSelect }: TasksPageProps) {
+function TasksContent({ tasks, projects, selectedProject, searchQuery, filters, currentPage, isLoading, isSubmitting, onCreate, onUpdate, onDelete, onSelect }: TasksPageProps) {
   const [taskSearchQuery, setTaskSearchQuery] = useState(searchQuery);
 
   const filteredTasks = useMemo(() => {
@@ -111,20 +102,19 @@ function TasksContent({ tasks, selectedProject, searchQuery, filters, currentPag
             style={{ width: "100%", padding: "10px 12px 10px 32px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--auth-input-bg)", color: "var(--text-h)" }}
           />
         </div>
-        <select value={filters.status} onChange={(e) => onUpdate({ id: "", title: "", description: "", projectId: "", assigneeId: null, status: e.target.value as Task["status"], priority: "medium", dueDate: null } as never)} style={{ display: "none" }} />
         <button
           onClick={() =>
             onCreate({
               title: `New task ${tasks.length + 1}`,
               description: "Task description for SaaS workflow",
-              projectId: selectedProject?.id ?? "p1",
+              projectId: selectedProject?.id ?? projects[0]?.id ?? "p1",
               assigneeId: null,
               status: "todo",
               priority: "medium",
               dueDate: null,
             })
           }
-          disabled={isSubmitting}
+          disabled={isSubmitting || projects.length === 0}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#fff", cursor: "pointer", fontWeight: 700 }}
         >
           <Plus size={16} /> {isSubmitting ? "Creating…" : "Create task"}
@@ -138,7 +128,7 @@ function TasksContent({ tasks, selectedProject, searchQuery, filters, currentPag
           <TaskRow
             key={task.id}
             task={task}
-            project={mockProjectsForTasks.find((project) => project.id === task.projectId)}
+            project={projects.find((project) => project.id === task.projectId)}
             onUpdate={onUpdate}
             onDelete={onDelete}
             onSelect={onSelect}
@@ -153,29 +143,73 @@ function TasksContent({ tasks, selectedProject, searchQuery, filters, currentPag
 
 export default function TasksPage() {
   const tasks = useSaaSStore((s) => s.tasks);
+  const projects = useSaaSStore((s) => s.projects);
   const selectedProject = useSaaSStore((s) => s.selectedProject);
   const searchQuery = useSaaSStore((s) => s.searchQuery);
   const filters = useSaaSStore((s) => s.filters);
   const currentPage = useSaaSStore((s) => s.currentPage);
-  const isLoading = useSaaSStore((s) => s.isLoading);
   const isSubmitting = useSaaSStore((s) => s.isSubmitting);
   const setTasks = useSaaSStore((s) => s.setTasks);
+  const setProjects = useSaaSStore((s) => s.setProjects);
+  const setIsLoading = useSaaSStore((s) => s.setIsLoading);
+  const setIsSubmitting = useSaaSStore((s) => s.setIsSubmitting);
   const pushToast = useSaaSStore((s) => s.pushToast);
 
-  const taskList = tasks.length ? tasks : mockTasks;
+  const [isLoading, setLocalLoading] = useState(true);
 
-  const handleCreateTask: TasksPageProps["onCreate"] = (newTask) => {
-    const createdTask: Task = { id: `t${Date.now()}`, ...newTask };
-    setTasks([createdTask, ...taskList]);
-    pushToast({ kind: "success", title: "Task created", msg: createdTask.title });
+  const fetchData = async () => {
+    setLocalLoading(true);
+    setIsLoading(true);
+    try {
+      const [tasksData, projectsData]: any = await Promise.all([
+        apiClient("/api/tasks"),
+        apiClient("/api/projects"),
+      ]);
+      setTasks(tasksData.tasks ?? []);
+      setProjects(projectsData.projects ?? []);
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Failed to load tasks", msg: e.message });
+    } finally {
+      setLocalLoading(false);
+      setIsLoading(false);
+    }
   };
-  const handleUpdateTask: TasksPageProps["onUpdate"] = (taskToUpdate) => {
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCreateTask: TasksPageProps["onCreate"] = async (newTask) => {
+    setIsSubmitting(true);
+    try {
+      const data: any = await apiClient("/api/tasks", newTask, "POST");
+      const created: Task = data.task;
+      setTasks([created, ...tasks]);
+      pushToast({ kind: "success", title: "Task created", msg: created.title });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Create failed", msg: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  const handleUpdateTask: TasksPageProps["onUpdate"] = async (taskToUpdate) => {
     if (!taskToUpdate.id) return;
-    setTasks(taskList.map((task) => (task.id === taskToUpdate.id ? taskToUpdate : task)));
+    try {
+      const data: any = await apiClient(`/api/tasks/${taskToUpdate.id}`, taskToUpdate, "PUT");
+      const updated: Task = data.task;
+      setTasks(tasks.map((task) => (task.id === updated.id ? updated : task)));
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Update failed", msg: e.message });
+    }
   };
-  const handleDeleteTask: TasksPageProps["onDelete"] = (taskToDelete) => {
-    setTasks(taskList.filter((task) => task.id !== taskToDelete.id));
-    pushToast({ kind: "warn", title: "Task removed", msg: taskToDelete.title });
+  const handleDeleteTask: TasksPageProps["onDelete"] = async (taskToDelete) => {
+    try {
+      await apiClient(`/api/tasks/${taskToDelete.id}`, undefined, "DELETE");
+      setTasks(tasks.filter((task) => task.id !== taskToDelete.id));
+      pushToast({ kind: "warn", title: "Task removed", msg: taskToDelete.title });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Delete failed", msg: e.message });
+    }
   };
   const handleSelectTask: TasksPageProps["onSelect"] = (selectedTask) => {
     pushToast({ kind: "info", title: "Task selected", msg: selectedTask.title });
@@ -188,7 +222,8 @@ export default function TasksPage() {
         <h1 style={{ margin: 0, fontSize: 32 }}>Tasks</h1>
       </div>
       <TasksContent
-        tasks={taskList}
+        tasks={tasks}
+        projects={projects}
         selectedProject={selectedProject}
         searchQuery={searchQuery}
         filters={filters}

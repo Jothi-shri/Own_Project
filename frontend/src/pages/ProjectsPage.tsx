@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSaaSStore, type Project, type Filters } from "../store";
+import { apiClient } from "../api/apiClient";
 import { FolderKanban, Plus, Search, Trash2, Pencil, Eye } from "lucide-react";
 
 interface ProjectCardProps {
@@ -175,50 +176,76 @@ function ProjectsContent({
   );
 }
 
-const mockProjects: Project[] = [
-  { id: "p1", name: "Atlas CRM", description: "Customer pipeline and revenue analytics", status: "active", ownerId: "u1", createdAt: "2026-01-10", updatedAt: "2026-09-01" },
-  { id: "p2", name: "Beacon Launch", description: "Marketing site and onboarding flow", status: "planning", ownerId: "u1", createdAt: "2026-02-14", updatedAt: "2026-08-20" },
-  { id: "p3", name: "Northwind Ops", description: "Operations dashboard for logistics", status: "completed", ownerId: "u2", createdAt: "2025-11-02", updatedAt: "2026-07-12" },
-  { id: "p4", name: "Pulse Analytics", description: "Real-time user analytics", status: "active", ownerId: "u1", createdAt: "2026-03-18", updatedAt: "2026-09-10" },
-];
-
 export default function ProjectsPage() {
   const storeProjects = useSaaSStore((s) => s.projects);
   const storeSelectedProject = useSaaSStore((s) => s.selectedProject);
   const storeSearchQuery = useSaaSStore((s) => s.searchQuery);
   const storeFilters = useSaaSStore((s) => s.filters);
   const storeCurrentPage = useSaaSStore((s) => s.currentPage);
-  const storeIsLoading = useSaaSStore((s) => s.isLoading);
   const storeIsSubmitting = useSaaSStore((s) => s.isSubmitting);
   const setProjects = useSaaSStore((s) => s.setProjects);
   const setSelectedProject = useSaaSStore((s) => s.setSelectedProject);
   const setIsSubmitting = useSaaSStore((s) => s.setIsSubmitting);
+  const setIsLoading = useSaaSStore((s) => s.setIsLoading);
   const pushToast = useSaaSStore((s) => s.pushToast);
 
-  const projects = storeProjects.length ? storeProjects : mockProjects;
+  const [isLoading, setLocalLoading] = useState(true);
 
-  const handleCreateProject: ProjectsPageProps["onCreate"] = (newProject) => {
+  const fetchProjects = async () => {
+    setLocalLoading(true);
+    setIsLoading(true);
+    try {
+      const data: any = await apiClient("/api/projects");
+      const list: Project[] = data.projects ?? [];
+      setProjects(list);
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Failed to load projects", msg: e.message });
+    } finally {
+      setLocalLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleCreateProject: ProjectsPageProps["onCreate"] = async (newProject) => {
     setIsSubmitting(true);
-    const createdProject: Project = {
-      id: `p${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...newProject,
-    };
-    setProjects([createdProject, ...projects]);
-    setIsSubmitting(false);
-    pushToast({ kind: "success", title: "Project created", msg: `${createdProject.name} added` });
+    try {
+      const data: any = await apiClient("/api/projects", { name: newProject.name, description: newProject.description, status: newProject.status }, "POST");
+      const created: Project = data.project;
+      setProjects([created, ...storeProjects]);
+      pushToast({ kind: "success", title: "Project created", msg: created.name });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Create failed", msg: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdateProject: ProjectsPageProps["onUpdate"] = (projectToUpdate) => {
-    setProjects(projects.map((project) => (project.id === projectToUpdate.id ? { ...project, updatedAt: new Date().toISOString() } : project)));
-    pushToast({ kind: "info", title: "Project updated", msg: projectToUpdate.name });
+  const handleUpdateProject: ProjectsPageProps["onUpdate"] = async (projectToUpdate) => {
+    // simple toggle demo: cycle status
+    const nextStatus = projectToUpdate.status === "planning" ? "active" : projectToUpdate.status === "active" ? "completed" : "archived";
+    try {
+      const data: any = await apiClient(`/api/projects/${projectToUpdate.id}`, { status: nextStatus }, "PUT");
+      const updated: Project = data.project;
+      setProjects(storeProjects.map((p) => (p.id === updated.id ? updated : p)));
+      pushToast({ kind: "info", title: "Project updated", msg: updated.name });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Update failed", msg: e.message });
+    }
   };
 
-  const handleDeleteProject: ProjectsPageProps["onDelete"] = (projectToDelete) => {
-    setProjects(projects.filter((project) => project.id !== projectToDelete.id));
-    if (storeSelectedProject?.id === projectToDelete.id) setSelectedProject(null);
-    pushToast({ kind: "warn", title: "Project removed", msg: projectToDelete.name });
+  const handleDeleteProject: ProjectsPageProps["onDelete"] = async (projectToDelete) => {
+    try {
+      await apiClient(`/api/projects/${projectToDelete.id}`, undefined, "DELETE");
+      setProjects(storeProjects.filter((project) => project.id !== projectToDelete.id));
+      if (storeSelectedProject?.id === projectToDelete.id) setSelectedProject(null);
+      pushToast({ kind: "warn", title: "Project removed", msg: projectToDelete.name });
+    } catch (e: any) {
+      pushToast({ kind: "error", title: "Delete failed", msg: e.message });
+    }
   };
 
   const handleSelectProject: ProjectsPageProps["onSelect"] = (projectToSelect) => {
@@ -232,12 +259,12 @@ export default function ProjectsPage() {
         <h1 style={{ margin: 0, fontSize: 32 }}>Projects</h1>
       </div>
       <ProjectsContent
-        projects={projects}
+        projects={storeProjects}
         selectedProject={storeSelectedProject}
         searchQuery={storeSearchQuery}
         filters={storeFilters}
         currentPage={storeCurrentPage}
-        isLoading={storeIsLoading}
+        isLoading={isLoading}
         isSubmitting={storeIsSubmitting}
         onCreate={handleCreateProject}
         onUpdate={handleUpdateProject}

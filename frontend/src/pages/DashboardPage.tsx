@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSaaSStore } from "../store";
+import { apiClient } from "../api/apiClient";
 import {
   FolderKanban,
   ListChecks,
@@ -64,48 +66,6 @@ type UpcomingTaskItem = {
   status: "Today" | "Tomorrow" | string;
 };
 
-const mockStats: DashboardStats = {
-  totalProjects: 12,
-  activeTasks: 34,
-  teamMembers: 8,
-  completedTasks: 87,
-};
-
-const mockProjects: ProjectOverviewItem[] = [
-  { id: "1", name: "Website Redesign", progress: 75, tasksCompleted: 18, tasksTotal: 24, status: "On Track", avatar: "WR" },
-  { id: "2", name: "Mobile App", progress: 45, tasksCompleted: 9, tasksTotal: 20, status: "In Progress", avatar: "MA" },
-  { id: "3", name: "Marketing Campaign", progress: 20, tasksCompleted: 4, tasksTotal: 20, status: "At Risk", avatar: "MC" },
-];
-
-const mockTaskDistribution: TaskDistribution[] = [
-  { label: "To Do", count: 12, color: "bg-slate-200 dark:bg-slate-700" },
-  { label: "In Progress", count: 8, color: "bg-amber-400" },
-  { label: "Review", count: 5, color: "bg-sky-400" },
-  { label: "Completed", count: 9, color: "bg-emerald-500" },
-];
-
-const mockAnalytics: TaskAnalyticsPoint[] = [
-  { day: "Monday", completed: 6 },
-  { day: "Tuesday", completed: 9 },
-  { day: "Wednesday", completed: 7 },
-  { day: "Thursday", completed: 12 },
-  { day: "Friday", completed: 8 },
-];
-
-const mockActivities: ActivityItem[] = [
-  { id: "1", actor: "John", action: "completed", target: "Update landing page", timeAgo: "10 minutes ago", type: "completed" },
-  { id: "2", actor: "Sarah", action: "created", target: "a new project", timeAgo: "32 minutes ago", type: "created" },
-  { id: "3", actor: "Mike", action: "assigned you", target: "Fix login validation", timeAgo: "1 hour ago", type: "assigned" },
-  { id: "4", actor: "You", action: "updated", target: "project settings", timeAgo: "2 hours ago", type: "updated" },
-];
-
-const mockUpcoming: UpcomingTaskItem[] = [
-  { id: "1", title: "Fix authentication bug", dueLabel: "Today", priority: "High", status: "Today" },
-  { id: "2", title: "Update dashboard UI", dueLabel: "Tomorrow", priority: "Medium", status: "Tomorrow" },
-  { id: "3", title: "Review API documentation", dueLabel: "Sep 18", priority: "Low", status: "Sep 18" },
-  { id: "4", title: "Deploy staging build", dueLabel: "Sep 20", priority: "High", status: "Sep 20" },
-];
-
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -144,11 +104,11 @@ function DashboardHeader({ userName, userEmail }: { userName: string; userEmail:
           <span className="sm:hidden">New</span>
         </button>
         <button
-          aria-label="Notifications, 3 unread"
+          aria-label="Notifications"
+          onClick={() => navigate("/notifications")}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] hover:bg-[var(--code-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <Bell className="h-4 w-4" aria-hidden="true" />
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-white">3</span>
         </button>
         <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-semibold text-white" aria-hidden="true">
@@ -180,46 +140,46 @@ function StatsCards({ stats }: { stats: DashboardStats }) {
     {
       label: "Total Projects",
       value: stats.totalProjects,
-      trend: "↑ 20% this month",
+      trend: "↑ this month",
       trendUp: true,
       icon: FolderKanban,
       iconBg: "bg-[var(--accent-bg)]",
       iconColor: "text-[var(--accent)]",
       to: "/projects",
-      ariaLabel: "Total Projects, 12, view projects",
+      ariaLabel: `Total Projects, ${stats.totalProjects}, view projects`,
     },
     {
       label: "Active Tasks",
       value: stats.activeTasks,
-      trend: "↑ 8% this week",
+      trend: "↑ this week",
       trendUp: true,
       icon: ListChecks,
       iconBg: "bg-[var(--accent-bg)]",
       iconColor: "text-[var(--accent)]",
       to: "/tasks",
-      ariaLabel: "Active Tasks, 34, view tasks",
+      ariaLabel: `Active Tasks, ${stats.activeTasks}, view tasks`,
     },
     {
       label: "Team Members",
       value: stats.teamMembers,
-      trend: "↑ 2 new",
+      trend: "↑ team",
       trendUp: true,
       icon: Users,
       iconBg: "bg-[var(--accent-bg)]",
       iconColor: "text-[var(--accent)]",
       to: "/team",
-      ariaLabel: "Team Members, 8, view team",
+      ariaLabel: `Team Members, ${stats.teamMembers}, view team`,
     },
     {
       label: "Completed Tasks",
       value: stats.completedTasks,
-      trend: "↓ 3% vs last week",
+      trend: "completed",
       trendUp: false,
       icon: CheckCircle,
       iconBg: "bg-[var(--accent-bg)]",
       iconColor: "text-[var(--accent)]",
       to: "/tasks",
-      ariaLabel: "Completed Tasks, 87, view tasks",
+      ariaLabel: `Completed Tasks, ${stats.completedTasks}, view tasks`,
     },
   ];
   return (
@@ -238,7 +198,7 @@ function StatsCards({ stats }: { stats: DashboardStats }) {
             </span>
           </div>
           <div className="mt-3 text-2xl font-semibold text-[var(--text-h)]">{card.value}</div>
-          <div className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${card.trendUp ? "text-emerald-600" : "text-red-600"}`}>
+          <div className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${card.trendUp ? "text-emerald-600" : "text-[var(--text)]"}`}>
             {card.trendUp ? <TrendingUp className="h-3 w-3" aria-hidden="true" /> : <TrendingDown className="h-3 w-3" aria-hidden="true" />}
             {card.trend}
           </div>
@@ -445,7 +405,7 @@ function TaskAnalytics({
   isLoading?: boolean;
   error?: string | null;
 }) {
-  const maxCompleted = Math.max(...data.map((taskAnalyticsPoint) => taskAnalyticsPoint.completed));
+  const maxCompleted = Math.max(1, ...data.map((taskAnalyticsPoint) => taskAnalyticsPoint.completed));
   const totalCompleted = data.reduce((sum, taskAnalyticsPoint) => sum + taskAnalyticsPoint.completed, 0);
   if (isLoading) return <DashboardLoading />;
   if (error) return <DashboardError message={error} />;
@@ -459,18 +419,15 @@ function TaskAnalytics({
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-xl font-semibold text-[var(--text-h)]">{totalCompleted} completed</span>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-              <TrendingUp className="h-3 w-3" aria-hidden="true" /> 18% vs previous week
+              <TrendingUp className="h-3 w-3" aria-hidden="true" /> vs previous
             </span>
           </div>
         </div>
-        <span className="hidden sm:inline-flex rounded-full bg-[var(--accent-bg)] px-2.5 py-1 text-xs font-medium text-[var(--accent)] ring-1 ring-[var(--accent-border)]">
-          +12% vs last week
-        </span>
       </div>
       <div className="mt-6 flex h-40 items-end gap-2 sm:gap-3">
         {data.map((taskAnalyticsPoint) => {
           const heightPct = (taskAnalyticsPoint.completed / maxCompleted) * 100;
-          const isPeak = taskAnalyticsPoint.completed === maxCompleted;
+          const isPeak = taskAnalyticsPoint.completed === maxCompleted && maxCompleted > 0;
           return (
             <div key={taskAnalyticsPoint.day} className="flex flex-1 flex-col items-center gap-2">
               <div className="flex w-full justify-center" style={{ height: "120px" }}>
@@ -488,9 +445,6 @@ function TaskAnalytics({
             </div>
           );
         })}
-      </div>
-      <div className="mt-4 border-t border-[var(--border)] pt-3 text-xs text-[var(--text)]">
-        Peak on Thursday • 12 tasks completed
       </div>
     </div>
   );
@@ -604,8 +558,60 @@ function UpcomingTasks({
 export default function DashboardPage() {
   const authenticatedUser = useSaaSStore((s) => s.user);
 
-  const userName = authenticatedUser?.name ?? "Sri";
-  const userEmail = authenticatedUser?.email ?? "sri@workspace.com";
+  const userName = authenticatedUser?.name ?? "User";
+  const userEmail = authenticatedUser?.email ?? "";
+
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [projects, setProjects] = useState<ProjectOverviewItem[]>([]);
+  const [distribution, setDistribution] = useState<TaskDistribution[]>([]);
+  const [analytics, setAnalytics] = useState<TaskAnalyticsPoint[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [upcoming, setUpcoming] = useState<UpcomingTaskItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDashboard = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data: any = await apiClient("/api/dashboard");
+      const s = data.stats || data;
+      setStats({
+        totalProjects: s.totalProjects ?? data.totalProjects ?? 0,
+        activeTasks: s.activeTasks ?? data.activeTasks ?? 0,
+        teamMembers: s.activeTeamMembers ?? data.teamMembers ?? 0,
+        completedTasks: s.completedTasks ?? data.completedTasks ?? 0,
+      });
+      setProjects(data.projectOverview ?? []);
+      setDistribution(data.taskDistribution ?? []);
+      setAnalytics(data.taskAnalytics ?? []);
+      setActivities(data.recentActivity ?? []);
+      setUpcoming(data.upcomingTasks ?? []);
+    } catch (e: any) {
+      setError(e?.message || "Unable to load dashboard");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  if (isLoading && !stats) {
+    return (
+      <div className="min-h-full bg-[var(--main-bg)]">
+        <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
+          <DashboardHeader userName={userName} userEmail={userEmail} />
+          <div className="mt-6">
+            <DashboardLoading />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const statsForCards: DashboardStats = stats ?? { totalProjects: 0, activeTasks: 0, teamMembers: 0, completedTasks: 0 };
 
   return (
     <div className="min-h-full bg-[var(--main-bg)]">
@@ -613,25 +619,25 @@ export default function DashboardPage() {
         <DashboardHeader userName={userName} userEmail={userEmail} />
 
         <div className="mt-6">
-          <StatsCards stats={mockStats} />
+          {error ? <DashboardError message={error} onRetry={fetchDashboard} /> : <StatsCards stats={statsForCards} />}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <ProjectOverview projects={mockProjects} />
+            <ProjectOverview projects={projects} isLoading={isLoading} error={error} onRetry={fetchDashboard} />
           </div>
           <div>
-            <TaskOverview distribution={mockTaskDistribution} />
+            <TaskOverview distribution={distribution} isLoading={isLoading} error={error} />
           </div>
         </div>
 
         <div className="mt-6">
-          <TaskAnalytics data={mockAnalytics} />
+          <TaskAnalytics data={analytics} isLoading={isLoading} error={error} />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <RecentActivity activities={mockActivities} />
-          <UpcomingTasks tasks={mockUpcoming} />
+          <RecentActivity activities={activities} isLoading={isLoading} error={error} />
+          <UpcomingTasks tasks={upcoming} isLoading={isLoading} error={error} />
         </div>
       </div>
     </div>
