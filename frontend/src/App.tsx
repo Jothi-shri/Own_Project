@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useSaaSStore, applyTheme } from "./store";
+import { apiClient } from "./api/apiClient";
 
 import DashboardPage from "./pages/DashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
@@ -13,17 +14,33 @@ import SettingsPage from "./pages/SettingsPage";
 import AppLayout from "./components/layout/AppLayout";
 import RequireAuth from "./components/auth/RequireAuth";
 import ToastStack from "./components/ui/ToastStack";
+import CommandPalette from "./components/ui/CommandPalette";
 import { AuthLayout, LoginPage, RegisterPage } from "./components/auth/AuthPages";
 
 export default function App() {
   const authenticatedUser = useSaaSStore((s) => s.user);
   const theme = useSaaSStore((s) => s.theme);
+  const userId = authenticatedUser?.id;
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
   useEffect(() => {
     useSaaSStore.getState().initializeAuth();
   }, []);
+  useEffect(() => {
+    // Keep sidebar/topbar notification badges database-driven on every page,
+    // not only after visiting /notifications.
+    if (!userId) return;
+    let cancelled = false;
+    apiClient("/api/notifications")
+      .then((data: any) => {
+        if (!cancelled) useSaaSStore.getState().setNotifications(data.notifications ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   if (!authenticatedUser) {
     return (
@@ -55,6 +72,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      <CommandPalette />
       <ToastStack />
     </AppLayout>
   );

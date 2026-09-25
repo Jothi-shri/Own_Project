@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSaaSStore } from "../store";
 import { apiClient } from "../api/apiClient";
+import { Reveal, LoadingState, ErrorState, EmptyState } from "../components/ui/primitives";
 import {
   FolderKanban,
   ListChecks,
@@ -17,8 +18,6 @@ import {
   Calendar,
   ArrowUpRight,
   Plus,
-  AlertCircle,
-  Loader2,
 } from "lucide-react";
 
 type DashboardStats = {
@@ -74,30 +73,30 @@ function getGreeting(): string {
 }
 
 function DashboardHeader({ userName, userEmail }: { userName: string; userEmail: string }) {
-  const firstName = userName.split(" ")[0] || "Sri";
+  const firstName = userName.split(" ")[0] || userEmail.split("@")[0] || "there";
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-h)]">Dashboard</h1>
-        <p className="mt-1 text-sm text-[var(--text)]">
+    <div className="anim-rise flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Workspace</p>
+        <h1 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-h)] sm:text-2xl">Dashboard</h1>
+        <p className="mt-1.5 text-sm leading-relaxed text-[var(--text)]">
           {getGreeting()}, {firstName} <span className="hidden sm:inline">— Here&apos;s what&apos;s happening with your workspace today.</span>
         </p>
-        <p className="sm:hidden mt-1 text-sm text-[var(--text)]">Here&apos;s what&apos;s happening today.</p>
       </div>
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative hidden sm:block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text)] opacity-60" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
           <input
             placeholder="Search projects, tasks..."
             aria-label="Search projects and tasks"
-            className="h-9 w-64 rounded-lg border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm text-[var(--text-h)] placeholder:text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
+            className="input !w-64 !pl-9 !py-2 text-[13px]"
           />
         </div>
         <button
           onClick={() => navigate("/projects")}
           aria-label="Create new project"
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] sm:gap-2 sm:px-4"
+          className="btn btn-primary !py-2.5"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           <span className="hidden sm:inline">New Project</span>
@@ -106,17 +105,17 @@ function DashboardHeader({ userName, userEmail }: { userName: string; userEmail:
         <button
           aria-label="Notifications"
           onClick={() => navigate("/notifications")}
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] hover:bg-[var(--code-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="icon-btn"
         >
           <Bell className="h-4 w-4" aria-hidden="true" />
         </button>
-        <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-semibold text-white" aria-hidden="true">
+        <div className="hidden items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] py-1.5 pl-1.5 pr-3 shadow-[var(--shadow-sm)] md:flex">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-[11px] font-bold text-white" aria-hidden="true">
             {firstName[0]?.toUpperCase()}
           </div>
-          <div className="hidden text-left sm:block">
-            <div className="text-xs font-medium leading-none text-[var(--text-h)]">{userName}</div>
-            <div className="text-[11px] leading-none text-[var(--text)]">{userEmail}</div>
+          <div className="hidden text-left leading-tight sm:block">
+            <div className="max-w-[160px] truncate text-xs font-semibold text-[var(--text-h)]">{userName}</div>
+            <div className="max-w-[160px] truncate text-[11px] text-[var(--text-muted)]">{userEmail}</div>
           </div>
         </div>
       </div>
@@ -132,52 +131,47 @@ function StatsCards({ stats }: { stats: DashboardStats }) {
     trend: string;
     trendUp: boolean;
     icon: typeof FolderKanban;
-    iconBg: string;
-    iconColor: string;
+    tile: string;
     to: string;
     ariaLabel: string;
   }> = [
     {
       label: "Total Projects",
       value: stats.totalProjects,
-      trend: "↑ this month",
+      trend: "this month",
       trendUp: true,
       icon: FolderKanban,
-      iconBg: "bg-[var(--accent-bg)]",
-      iconColor: "text-[var(--accent)]",
+      tile: "bg-[var(--accent-bg)] text-[var(--accent)]",
       to: "/projects",
       ariaLabel: `Total Projects, ${stats.totalProjects}, view projects`,
     },
     {
       label: "Active Tasks",
       value: stats.activeTasks,
-      trend: "↑ this week",
+      trend: "this week",
       trendUp: true,
       icon: ListChecks,
-      iconBg: "bg-[var(--accent-bg)]",
-      iconColor: "text-[var(--accent)]",
+      tile: "bg-[var(--info-bg)] text-[var(--info)]",
       to: "/tasks",
       ariaLabel: `Active Tasks, ${stats.activeTasks}, view tasks`,
     },
     {
       label: "Team Members",
       value: stats.teamMembers,
-      trend: "↑ team",
+      trend: "and growing",
       trendUp: true,
       icon: Users,
-      iconBg: "bg-[var(--accent-bg)]",
-      iconColor: "text-[var(--accent)]",
+      tile: "bg-[var(--success-bg)] text-[var(--success)]",
       to: "/team",
       ariaLabel: `Team Members, ${stats.teamMembers}, view team`,
     },
     {
       label: "Completed Tasks",
       value: stats.completedTasks,
-      trend: "completed",
+      trend: "shipped",
       trendUp: false,
       icon: CheckCircle,
-      iconBg: "bg-[var(--accent-bg)]",
-      iconColor: "text-[var(--accent)]",
+      tile: "bg-[var(--warning-bg)] text-[var(--warning)]",
       to: "/tasks",
       ariaLabel: `Completed Tasks, ${stats.completedTasks}, view tasks`,
     },
@@ -189,17 +183,17 @@ function StatsCards({ stats }: { stats: DashboardStats }) {
           key={card.label}
           onClick={() => navigate(card.to)}
           aria-label={card.ariaLabel}
-          className="group text-left rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 cursor-pointer transition hover:border-[var(--accent-border)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
+          className="card card-hover group p-4 text-left sm:p-5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--text)]">{card.label}</span>
-            <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${card.iconBg}`}>
-              <card.icon className={`h-4 w-4 ${card.iconColor}`} aria-hidden="true" />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">{card.label}</span>
+            <span className={`flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${card.tile}`}>
+              <card.icon className="h-4.5 w-4.5" aria-hidden="true" />
             </span>
           </div>
-          <div className="mt-3 text-2xl font-semibold text-[var(--text-h)]">{card.value}</div>
-          <div className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${card.trendUp ? "text-emerald-600" : "text-[var(--text)]"}`}>
-            {card.trendUp ? <TrendingUp className="h-3 w-3" aria-hidden="true" /> : <TrendingDown className="h-3 w-3" aria-hidden="true" />}
+          <div className="mt-3 text-[28px] font-bold leading-none tracking-tight text-[var(--text-h)]">{card.value}</div>
+          <div className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold ${card.trendUp ? "text-[var(--success)]" : "text-[var(--text-muted)]"}`}>
+            {card.trendUp ? <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> : <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" />}
             {card.trend}
           </div>
         </button>
@@ -209,34 +203,11 @@ function StatsCards({ stats }: { stats: DashboardStats }) {
 }
 
 function DashboardLoading() {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-6 text-sm text-[var(--text)]">
-      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-      Loading dashboard...
-    </div>
-  );
+  return <LoadingState message="Loading dashboard…" rows={3} />;
 }
 
 function DashboardError({ message, onRetry }: { message?: string; onRetry?: () => void }) {
-  return (
-    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 dark:border-red-900/50 dark:bg-red-950/30">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
-        <div>
-          <p className="text-sm font-medium text-red-800 dark:text-red-300">{message ?? "Unable to load dashboard"}</p>
-          <p className="mt-1 text-xs text-red-700 dark:text-red-400">Try again</p>
-          {onRetry && (
-            <button
-              onClick={onRetry}
-              className="mt-3 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-            >
-              Try again
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return <ErrorState message={message ?? "Unable to load dashboard"} onRetry={onRetry} />;
 }
 
 function ProjectOverview({
@@ -252,10 +223,10 @@ function ProjectOverview({
 }) {
   const navigate = useNavigate();
   const statusStyles: Record<ProjectOverviewItem["status"], string> = {
-    "On Track": "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300",
-    "In Progress": "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-500/10 dark:text-sky-300",
-    "At Risk": "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300",
-    Completed: "bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-800 dark:text-gray-300",
+    "On Track": "badge-success",
+    "In Progress": "badge-info",
+    "At Risk": "badge-warning",
+    Completed: "badge-neutral",
   };
   const progressColor: Record<ProjectOverviewItem["status"], string> = {
     "On Track": "bg-emerald-500",
@@ -268,70 +239,71 @@ function ProjectOverview({
   if (error) return <DashboardError message={error} onRetry={onRetry} />;
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)]">
-      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-        <h3 className="text-sm font-semibold text-[var(--text-h)]">Project Overview</h3>
+    <div className="card card-hover overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3.5 sm:px-5">
+        <div>
+          <h3 className="text-sm font-bold text-[var(--text-h)]">Project Overview</h3>
+          <p className="mt-0.5 text-xs text-[var(--text)]">Delivery status across active work</p>
+        </div>
         <button
           onClick={() => navigate("/projects")}
-          className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-[var(--accent)] transition hover:bg-[var(--accent-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
-          View all <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+          View all <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
       {projects.length === 0 ? (
-        <div className="px-4 py-10 text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--code-bg)]">
-            <FolderKanban className="h-5 w-5 text-[var(--text)]" aria-hidden="true" />
-          </div>
-          <p className="mt-3 text-sm font-medium text-[var(--text-h)]">No projects yet</p>
-          <p className="mt-1 text-xs text-[var(--text)]">Create your first project to get started</p>
-          <button
-            onClick={() => navigate("/projects")}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" /> New Project
-          </button>
-        </div>
+        <EmptyState
+          icon={<FolderKanban className="h-5 w-5" aria-hidden="true" />}
+          title="No projects yet"
+          message="Create your first project to start tracking delivery."
+          action={
+            <button onClick={() => navigate("/projects")} className="btn btn-primary !py-2 text-xs">
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> New Project
+            </button>
+          }
+        />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[var(--code-bg)] text-xs uppercase tracking-wider text-[var(--text)]">
+          <table className="table-shell">
+            <thead>
               <tr>
-                <th className="px-4 py-2.5 font-medium">Project</th>
-                <th className="px-4 py-2.5 font-medium">Progress</th>
-                <th className="px-4 py-2.5 font-medium">Tasks</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th>Project</th>
+                <th>Progress</th>
+                <th>Tasks</th>
+                <th>Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]">
+            <tbody>
               {projects.map((projectOverviewItem) => (
-                <tr key={projectOverviewItem.id} className="hover:bg-[var(--code-bg)]/50">
-                  <td className="px-4 py-3">
+                <tr key={projectOverviewItem.id}>
+                  <td>
                     <div className="flex items-center gap-3">
                       <span
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--text-h)] text-xs font-semibold text-[var(--bg)]"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-bg)] text-xs font-bold text-[var(--accent)]"
                         aria-hidden="true"
                       >
                         {projectOverviewItem.avatar}
                       </span>
-                      <span className="font-medium text-[var(--text-h)]">{projectOverviewItem.name}</span>
+                      <span className="font-semibold text-[var(--text-h)]">{projectOverviewItem.name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="w-28">
+                  <td>
+                    <div className="w-28 sm:w-36">
                       <div className="flex items-center justify-between text-xs text-[var(--text)]">
-                        <span>{projectOverviewItem.progress}%</span>
+                        <span className="font-semibold text-[var(--text-h)]">{projectOverviewItem.progress}%</span>
                       </div>
-                      <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--border)]">
-                        <div className={`h-1.5 rounded-full ${progressColor[projectOverviewItem.status]}`} style={{ width: `${projectOverviewItem.progress}%` }} />
+                      <div className="progress-track mt-1.5">
+                        <div className={`progress-fill ${progressColor[projectOverviewItem.status]}`} style={{ width: `${projectOverviewItem.progress}%` }} />
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-[var(--text)]">
-                    {projectOverviewItem.tasksCompleted} / {projectOverviewItem.tasksTotal}
+                  <td>
+                    <span className="font-medium text-[var(--text-h)]">{projectOverviewItem.tasksCompleted}</span>
+                    <span className="text-[var(--text-muted)]"> / {projectOverviewItem.tasksTotal}</span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[projectOverviewItem.status]}`}>
+                  <td>
+                    <span className={`badge ${statusStyles[projectOverviewItem.status]}`}>
                       {projectOverviewItem.status}
                     </span>
                   </td>
@@ -359,38 +331,35 @@ function TaskOverview({
   if (error) return <DashboardError message={error} />;
   if (distribution.length === 0 || totalTasks === 0) {
     return (
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-        <h3 className="text-sm font-semibold text-[var(--text-h)]">Task Overview</h3>
-        <div className="py-8 text-center">
-          <p className="text-sm text-[var(--text)]">No tasks yet</p>
-          <p className="mt-1 text-xs text-[var(--text)] opacity-70">Tasks will appear once projects are active</p>
-        </div>
+      <div className="card card-hover p-4 sm:p-5">
+        <h3 className="text-sm font-bold text-[var(--text-h)]">Task Overview</h3>
+        <EmptyState title="No tasks yet" message="Tasks will appear once projects are active." />
       </div>
     );
   }
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-      <h3 className="text-sm font-semibold text-[var(--text-h)]">Task Overview</h3>
-      <p className="mt-1 text-xs text-[var(--text)]">Distribution by status</p>
-      <div className="mt-4 space-y-3">
+    <div className="card card-hover p-4 sm:p-5">
+      <h3 className="text-sm font-bold text-[var(--text-h)]">Task Overview</h3>
+      <p className="mt-0.5 text-xs text-[var(--text)]">Distribution by status</p>
+      <div className="mt-4 space-y-3.5">
         {distribution.map((taskDistributionItem) => {
           const pct = Math.round((taskDistributionItem.count / totalTasks) * 100);
           return (
-            <div key={taskDistributionItem.label} className="space-y-1">
+            <div key={taskDistributionItem.label} className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-[var(--text-h)]">{taskDistributionItem.label}</span>
-                <span className="text-[var(--text)]">{taskDistributionItem.count} • {pct}%</span>
+                <span className="font-semibold text-[var(--text-h)]">{taskDistributionItem.label}</span>
+                <span className="text-[var(--text-muted)]">{taskDistributionItem.count} • {pct}%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-[var(--border)]">
-                <div className={`h-2 rounded-full ${taskDistributionItem.color}`} style={{ width: `${pct}%` }} />
+              <div className="progress-track !h-2">
+                <div className={`progress-fill ${taskDistributionItem.color}`} style={{ width: `${pct}%` }} />
               </div>
             </div>
           );
         })}
       </div>
-      <div className="mt-4 flex items-center justify-between rounded-lg bg-[var(--code-bg)] px-3 py-2">
-        <span className="text-xs font-medium text-[var(--text)]">Total tasks</span>
-        <span className="text-sm font-semibold text-[var(--text-h)]">{totalTasks}</span>
+      <div className="card-sunken mt-4 flex items-center justify-between px-3.5 py-2.5">
+        <span className="text-xs font-semibold text-[var(--text)]">Total tasks</span>
+        <span className="text-sm font-bold text-[var(--text-h)]">{totalTasks}</span>
       </div>
     </div>
   );
@@ -411,14 +380,14 @@ function TaskAnalytics({
   if (error) return <DashboardError message={error} />;
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+    <div className="card card-hover p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--text-h)]">Task Completion</h3>
-          <p className="mt-1 text-xs text-[var(--text)]">Last 7 days</p>
+          <h3 className="text-sm font-bold text-[var(--text-h)]">Task Completion</h3>
+          <p className="mt-0.5 text-xs text-[var(--text)]">Last 7 days</p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-xl font-semibold text-[var(--text-h)]">{totalCompleted} completed</span>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+            <span className="text-xl font-bold tracking-tight text-[var(--text-h)]">{totalCompleted} completed</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--success)]">
               <TrendingUp className="h-3 w-3" aria-hidden="true" /> vs previous
             </span>
           </div>
@@ -460,35 +429,33 @@ function RecentActivity({
   error?: string | null;
 }) {
   const iconMap: Record<ActivityItem["type"], React.ReactNode> = {
-    completed: <CheckCircle className="h-4 w-4 text-emerald-600" aria-hidden="true" />,
-    created: <FileText className="h-4 w-4 text-sky-600" aria-hidden="true" />,
-    assigned: <User className="h-4 w-4 text-violet-600" aria-hidden="true" />,
-    updated: <Clock className="h-4 w-4 text-amber-600" aria-hidden="true" />,
+    completed: <CheckCircle className="h-4 w-4 text-[var(--success)]" aria-hidden="true" />,
+    created: <FileText className="h-4 w-4 text-[var(--info)]" aria-hidden="true" />,
+    assigned: <User className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />,
+    updated: <Clock className="h-4 w-4 text-[var(--warning)]" aria-hidden="true" />,
   };
   if (isLoading) return <DashboardLoading />;
   if (error) return <DashboardError message={error} />;
   if (activities.length === 0) {
     return (
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-        <h3 className="text-sm font-semibold text-[var(--text-h)]">Recent Activity</h3>
-        <div className="py-8 text-center">
-          <p className="text-sm text-[var(--text)]">No recent activity</p>
-        </div>
+      <div className="card card-hover p-4 sm:p-5">
+        <h3 className="text-sm font-bold text-[var(--text-h)]">Recent Activity</h3>
+        <EmptyState title="No recent activity" message="Team actions will show up here." />
       </div>
     );
   }
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[var(--text-h)]">Recent Activity</h3>
-        <button className="text-xs font-medium text-[var(--accent)] hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+    <div className="card card-hover p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-[var(--text-h)]">Recent Activity</h3>
+        <button className="rounded-lg px-2 py-1 text-xs font-bold text-[var(--accent)] transition hover:bg-[var(--accent-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
           View all
         </button>
       </div>
       <div className="mt-4 space-y-4">
         {activities.map((activityItem) => (
           <div key={activityItem.id} className="flex gap-3">
-            <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--code-bg)]">
+            <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] ring-1 ring-[var(--border)]">
               {iconMap[activityItem.type]}
             </span>
             <div className="min-w-0 flex-1">
@@ -517,35 +484,34 @@ function UpcomingTasks({
   error?: string | null;
 }) {
   const priorityStyle: Record<UpcomingTaskItem["priority"], string> = {
-    High: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-300",
-    Medium: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300",
-    Low: "bg-[var(--code-bg)] text-[var(--text)] ring-[var(--border)]",
+    High: "badge-danger",
+    Medium: "badge-warning",
+    Low: "badge-neutral",
   };
   if (isLoading) return <DashboardLoading />;
   if (error) return <DashboardError message={error} />;
   if (tasks.length === 0) {
     return (
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-        <h3 className="text-sm font-semibold text-[var(--text-h)]">Upcoming Tasks</h3>
-        <div className="py-8 text-center">
-          <p className="text-sm text-[var(--text)]">No upcoming tasks</p>
-        </div>
+      <div className="card card-hover p-4 sm:p-5">
+        <h3 className="text-sm font-bold text-[var(--text-h)]">Upcoming Tasks</h3>
+        <EmptyState title="No upcoming tasks" message="You're all caught up. Nice work." />
       </div>
     );
   }
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-      <h3 className="text-sm font-semibold text-[var(--text-h)]">Upcoming Tasks</h3>
-      <div className="mt-4 space-y-3">
+    <div className="card card-hover p-4 sm:p-5">
+      <h3 className="text-sm font-bold text-[var(--text-h)]">Upcoming Tasks</h3>
+      <p className="mt-0.5 text-xs text-[var(--text)]">Due soon across your projects</p>
+      <div className="mt-4 space-y-2.5">
         {tasks.map((upcomingTaskItem) => (
-          <div key={upcomingTaskItem.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2.5 hover:bg-[var(--code-bg)]/50">
+          <div key={upcomingTaskItem.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 px-3 py-2.5 transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-bg)]">
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-[var(--text-h)]">{upcomingTaskItem.title}</div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--text)]">
+              <div className="truncate text-sm font-semibold text-[var(--text-h)]">{upcomingTaskItem.title}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
                 <Calendar className="h-3 w-3" aria-hidden="true" /> {upcomingTaskItem.dueLabel}
               </div>
             </div>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${priorityStyle[upcomingTaskItem.priority]}`}>
+            <span className={`badge shrink-0 ${priorityStyle[upcomingTaskItem.priority]}`}>
               {upcomingTaskItem.priority}
             </span>
           </div>
@@ -558,7 +524,7 @@ function UpcomingTasks({
 export default function DashboardPage() {
   const authenticatedUser = useSaaSStore((s) => s.user);
 
-  const userName = authenticatedUser?.name ?? "User";
+  const userName = authenticatedUser?.name ?? authenticatedUser?.email?.split("@")[0] ?? "there";
   const userEmail = authenticatedUser?.email ?? "";
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -600,8 +566,8 @@ export default function DashboardPage() {
 
   if (isLoading && !stats) {
     return (
-      <div className="min-h-full bg-[var(--main-bg)]">
-        <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="page-wrap">
+        <div className="mx-auto max-w-[1280px]">
           <DashboardHeader userName={userName} userEmail={userEmail} />
           <div className="mt-6">
             <DashboardLoading />
@@ -614,30 +580,34 @@ export default function DashboardPage() {
   const statsForCards: DashboardStats = stats ?? { totalProjects: 0, activeTasks: 0, teamMembers: 0, completedTasks: 0 };
 
   return (
-    <div className="min-h-full bg-[var(--main-bg)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="page-wrap">
+      <div className="mx-auto max-w-[1280px]">
         <DashboardHeader userName={userName} userEmail={userEmail} />
 
         <div className="mt-6">
           {error ? <DashboardError message={error} onRetry={fetchDashboard} /> : <StatsCards stats={statsForCards} />}
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <Reveal className="lg:col-span-2">
             <ProjectOverview projects={projects} isLoading={isLoading} error={error} onRetry={fetchDashboard} />
-          </div>
-          <div>
+          </Reveal>
+          <Reveal delay={90}>
             <TaskOverview distribution={distribution} isLoading={isLoading} error={error} />
-          </div>
+          </Reveal>
         </div>
 
-        <div className="mt-6">
+        <Reveal delay={60} className="mt-5">
           <TaskAnalytics data={analytics} isLoading={isLoading} error={error} />
-        </div>
+        </Reveal>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <RecentActivity activities={activities} isLoading={isLoading} error={error} />
-          <UpcomingTasks tasks={upcoming} isLoading={isLoading} error={error} />
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <Reveal>
+            <RecentActivity activities={activities} isLoading={isLoading} error={error} />
+          </Reveal>
+          <Reveal delay={90}>
+            <UpcomingTasks tasks={upcoming} isLoading={isLoading} error={error} />
+          </Reveal>
         </div>
       </div>
     </div>

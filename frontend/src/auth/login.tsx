@@ -3,7 +3,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSaaSStore } from "../store";
 import { authService } from "../api/authService";
-import { Eye, EyeOff, Lock, Mail, TriangleAlert } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, TriangleAlert, ArrowRight } from "lucide-react";
 
 interface LoginCredentials {
   email: string;
@@ -54,17 +54,23 @@ export default function Login() {
 
   return (
     <>
-      <div className="mb-10 select-none text-center">
-        <h2 className="text-4xl font-extrabold tracking-tight text-[var(--auth-heading)]">Sign in</h2>
-        <p className="mt-3 text-base text-[var(--auth-text)]">Enter your credentials to access the SaaS platform.</p>
+      <div className="mb-7">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Welcome back</p>
+        <h2 className="mt-1.5 text-[26px] font-bold tracking-tight text-[var(--text-h)]">Sign in</h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-[var(--text)]">
+          Enter your credentials to access your workspace.
+        </p>
       </div>
 
-      <form onSubmit={handleLoginSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleLoginSubmit} className="flex flex-col gap-5">
         <div>
-          <label className="mb-3 block text-xs font-extrabold uppercase tracking-widest text-[var(--auth-text-muted)]">Email address</label>
+          <label htmlFor="login-email" className="field-label">
+            Email address
+          </label>
           <div className="relative flex items-center">
-            <Mail size={18} className="pointer-events-none absolute left-[14px] shrink-0 text-[var(--auth-text-muted)]" aria-hidden />
+            <Mail size={17} className="pointer-events-none absolute left-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden />
             <input
+              id="login-email"
               name="email"
               type="email"
               autoComplete="email"
@@ -72,16 +78,19 @@ export default function Login() {
               value={loginCredentials.email}
               onChange={handleLoginCredentialChange}
               placeholder="you@company.com"
-              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-3 text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
+              className="input !pl-10"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-3 block text-xs font-extrabold uppercase tracking-widest text-[var(--auth-text-muted)]">Password</label>
+          <label htmlFor="login-password" className="field-label">
+            Password
+          </label>
           <div className="relative flex items-center">
-            <Lock size={18} className="pointer-events-none absolute left-[14px] shrink-0 text-[var(--auth-text-muted)]" aria-hidden />
+            <Lock size={17} className="pointer-events-none absolute left-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden />
             <input
+              id="login-password"
               name="password"
               type={isPasswordVisible ? "text" : "password"}
               autoComplete="current-password"
@@ -89,32 +98,32 @@ export default function Login() {
               value={loginCredentials.password}
               onChange={handleLoginCredentialChange}
               placeholder="Enter your password"
-              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-[42px] text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
+              className="input !pl-10 !pr-11"
             />
             <button
               type="button"
-              className="absolute right-[6px] flex h-8 w-8 items-center justify-center rounded-[7px] bg-transparent text-[var(--auth-text-muted)] transition hover:bg-[var(--code-bg)] hover:text-[var(--text-h)]"
+              className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text-h)]"
               onClick={() => setIsPasswordVisible((previousVisibility) => !previousVisibility)}
-              aria-label="Toggle password"
+              aria-label={isPasswordVisible ? "Hide password" : "Show password"}
             >
-              {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+              {isPasswordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
         </div>
 
-        <div className="mt-1 flex select-none items-center justify-between">
-          <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold text-[var(--auth-text)]">
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-[var(--text)]">
             <input
               type="checkbox"
               checked={shouldRememberSession}
               onChange={(sessionToggleEvent) => setShouldRememberSession(sessionToggleEvent.target.checked)}
               className="h-4 w-4 cursor-pointer rounded accent-[var(--accent)]"
             />
-            Keep me signed in for 30 days
+            Keep me signed in
           </label>
           <button
             type="button"
-            className="cursor-pointer border-none bg-transparent p-0 text-sm font-semibold text-[var(--auth-primary-from)] transition hover:opacity-85"
+            className="text-[13px] font-semibold text-[var(--accent)] transition hover:opacity-80 hover:underline"
             onClick={() =>
               pushToast({
                 kind: "info",
@@ -128,43 +137,44 @@ export default function Login() {
         </div>
 
         {loginError && (
-          <div className="flex items-center gap-2 rounded-[10px] border border-[var(--auth-error-border)] bg-[var(--auth-error-bg)] p-3 text-sm font-semibold text-[var(--auth-error-text)]">
-            <TriangleAlert size={16} className="shrink-0" aria-hidden />
-            {loginError}
+          <div
+            className="anim-fade flex items-start gap-2.5 rounded-xl border border-[var(--auth-error-border)] bg-[var(--auth-error-bg)] p-3 text-[13px] font-medium text-[var(--auth-error-text)]"
+            role="alert"
+          >
+            <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden />
+            <span>{loginError}</span>
           </div>
         )}
 
-        <button
-          type="submit"
-          className="mt-4 flex w-full items-center justify-center rounded-[10px] border border-transparent bg-gradient-to-br from-[var(--auth-primary-from)] to-[var(--auth-primary-to)] py-3 text-[15px] font-bold tracking-wide text-white shadow-[var(--shadow)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-65"
-          disabled={isSubmitting}
-        >
+        <button type="submit" className="btn btn-primary mt-1 w-full !py-3 text-[15px]" disabled={isSubmitting}>
           {isSubmitting ? (
             <span className="inline-flex items-center justify-center gap-2">
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               Signing in…
             </span>
           ) : (
-            "Sign in →"
+            <span className="inline-flex items-center gap-1.5">
+              Sign in <ArrowRight size={16} aria-hidden />
+            </span>
           )}
         </button>
       </form>
 
-      <div className="mt-8 flex select-none items-center justify-center gap-4 text-sm font-semibold text-[var(--auth-text-muted)]">
-        <span>
-          Don&apos;t have an account?{" "}
-          <button
-            type="button"
-            className="cursor-pointer border-none bg-transparent p-0 text-sm font-extrabold text-[var(--auth-primary-from)] transition hover:opacity-85 hover:underline"
-            onClick={() => {
-              setAuthView("register");
-              navigate("/register");
-            }}
-          >
-            Create one
-          </button>
-        </span>
-      </div>
+      <div className="divider my-6" aria-hidden="true" />
+
+      <p className="text-center text-sm text-[var(--text)]">
+        Don&apos;t have an account?{" "}
+        <button
+          type="button"
+          className="font-bold text-[var(--accent)] transition hover:opacity-80 hover:underline"
+          onClick={() => {
+            setAuthView("register");
+            navigate("/register");
+          }}
+        >
+          Create one
+        </button>
+      </p>
     </>
   );
 }

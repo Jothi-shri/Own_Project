@@ -26,85 +26,85 @@ function loadTheme(): Theme {
 
 const themeVars: Record<Theme, Record<string, string>> = {
   light: {
-    "--text": "#6b6375",
-    "--text-h": "#08060d",
-    "--bg": "#fff",
-    "--border": "#e5e4e7",
-    "--code-bg": "#f4f3ec",
-    "--accent": "#2563eb",
-    "--accent-bg": "rgba(37, 99, 235, 0.08)",
-    "--accent-border": "rgba(37, 99, 235, 0.2)",
-    "--social-bg": "rgba(244, 243, 236, 0.5)",
-    "--shadow": "rgba(0, 0, 0, 0.06) 0 4px 12px -2px",
-    "--auth-text-muted": "#9a96a6",
-    "--auth-input-bg": "#f4f3ec",
+    "--text": "#5d6575",
+    "--text-h": "#141a28",
+    "--bg": "#fdfdfb",
+    "--border": "#e5e3d9",
+    "--code-bg": "#f1f0ea",
+    "--accent": "#4f46e5",
+    "--accent-bg": "rgba(79, 70, 229, 0.08)",
+    "--accent-border": "rgba(79, 70, 229, 0.28)",
+    "--social-bg": "rgba(241, 240, 234, 0.7)",
+    "--shadow": "0 1px 2px rgba(20, 26, 40, 0.05), 0 12px 32px -16px rgba(20, 26, 40, 0.18)",
+    "--auth-text-muted": "#8a91a1",
+    "--auth-input-bg": "#f6f6f3",
     "--auth-error-bg": "#fef2f2",
     "--auth-error-border": "#fecaca",
-    "--auth-error-text": "#dc2626",
-    "--bg-4": "#e7e5e4",
-    "--sidebar-bg": "#f1f5f9",
-    "--sidebar-border": "#e2e8f0",
-    "--sidebar-text": "#1e293b",
-    "--sidebar-text-muted": "#64748b",
-    "--sidebar-hover-bg": "#e2e8f0",
-    "--sidebar-active-bg": "#dbeafe",
-    "--sidebar-active-text": "#2563eb",
-    "--main-bg": "#ffffff",
-    "--topbar-bg": "rgba(255,255,255,0.8)",
+    "--auth-error-text": "#b91c1c",
+    "--bg-4": "#e8e6de",
+    "--sidebar-bg": "#fbfbfa",
+    "--sidebar-border": "#e6e4db",
+    "--sidebar-text": "#1c2333",
+    "--sidebar-text-muted": "#6f7686",
+    "--sidebar-hover-bg": "#efeee8",
+    "--sidebar-active-bg": "rgba(79, 70, 229, 0.1)",
+    "--sidebar-active-text": "#4f46e5",
+    "--main-bg": "#f4f4f1",
+    "--topbar-bg": "rgba(244,244,241,0.85)",
   },
   dark: {
-    "--text": "#9ca3af",
-    "--text-h": "#f3f4f6",
-    "--bg": "#1a2234",
-    "--border": "#2e303a",
-    "--code-bg": "#1f2937",
+    "--text": "#9aa6bd",
+    "--text-h": "#f1f5fa",
+    "--bg": "#131b2e",
+    "--border": "rgba(148, 163, 184, 0.16)",
+    "--code-bg": "#1b2540",
     "--accent": "#38bdf8",
     "--accent-bg": "rgba(56, 189, 248, 0.12)",
-    "--accent-border": "rgba(56, 189, 248, 0.25)",
-    "--social-bg": "rgba(30, 41, 59, 0.5)",
-    "--shadow": "rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px",
-    "--auth-text-muted": "#9ca3af",
-    "--auth-input-bg": "#1f2937",
+    "--accent-border": "rgba(56, 189, 248, 0.32)",
+    "--social-bg": "rgba(27, 37, 64, 0.6)",
+    "--shadow": "0 1px 2px rgba(2, 6, 17, 0.5), 0 12px 32px -12px rgba(2, 6, 17, 0.65)",
+    "--auth-text-muted": "#7c8aa0",
+    "--auth-input-bg": "#161f36",
     "--auth-error-bg": "rgba(220, 38, 38, 0.12)",
-    "--auth-error-border": "rgba(220, 38, 38, 0.35)",
-    "--auth-error-text": "#f87171",
-    "--bg-4": "#1e293b",
-    "--sidebar-bg": "#0f172a",
-    "--sidebar-border": "#1e3a5b",
-    "--sidebar-text": "#e2e8f0",
-    "--sidebar-text-muted": "#94a3b8",
-    "--sidebar-hover-bg": "#1e293b",
-    "--sidebar-active-bg": "rgba(56, 189, 248, 0.15)",
-    "--sidebar-active-text": "#38bdf8",
-    "--main-bg": "#111827",
-    "--topbar-bg": "rgba(17,24,39,0.8)",
+    "--auth-error-border": "rgba(248, 113, 113, 0.4)",
+    "--auth-error-text": "#fca5a5",
+    "--bg-4": "#24304d",
+    "--sidebar-bg": "#0a0f1e",
+    "--sidebar-border": "rgba(148, 163, 184, 0.14)",
+    "--sidebar-text": "#e6ebf5",
+    "--sidebar-text-muted": "#8b96ad",
+    "--sidebar-hover-bg": "rgba(148, 163, 184, 0.1)",
+    "--sidebar-active-bg": "rgba(56, 189, 248, 0.14)",
+    "--sidebar-active-text": "#7dd3fc",
+    "--main-bg": "#0c1220",
+    "--topbar-bg": "rgba(12,18,32,0.82)",
   },
   ocean: {
-    "--text": "#475569",
-    "--text-h": "#0f172a",
-    "--bg": "#f0f9ff",
-    "--border": "#cbd5e1",
-    "--code-bg": "#e0f2fe",
-    "--accent": "#0891b2",
-    "--accent-bg": "rgba(8, 145, 178, 0.1)",
-    "--accent-border": "rgba(8, 145, 178, 0.25)",
-    "--social-bg": "rgba(224, 242, 254, 0.7)",
-    "--shadow": "rgba(8, 145, 178, 0.12) 0 8px 20px -4px",
-    "--auth-text-muted": "#64748b",
-    "--auth-input-bg": "#ffffff",
-    "--auth-error-bg": "#fef2f2",
-    "--auth-error-border": "#fecaca",
-    "--auth-error-text": "#dc2626",
-    "--bg-4": "#e0f2fe",
-    "--sidebar-bg": "#083344",
-    "--sidebar-border": "#0e7490",
-    "--sidebar-text": "#ecfeff",
-    "--sidebar-text-muted": "#7dd3fc",
-    "--sidebar-hover-bg": "#0e4d5e",
-    "--sidebar-active-bg": "rgba(6, 182, 212, 0.15)",
-    "--sidebar-active-text": "#22d3ee",
-    "--main-bg": "#ecfeff",
-    "--topbar-bg": "rgba(236,254,255,0.8)",
+    "--text": "#9cc3cf",
+    "--text-h": "#f2feff",
+    "--bg": "#0a2e3d",
+    "--border": "rgba(103, 232, 249, 0.16)",
+    "--code-bg": "#0f3d52",
+    "--accent": "#22d3ee",
+    "--accent-bg": "rgba(34, 211, 238, 0.12)",
+    "--accent-border": "rgba(34, 211, 238, 0.34)",
+    "--social-bg": "rgba(15, 61, 82, 0.6)",
+    "--shadow": "0 1px 2px rgba(2, 20, 27, 0.5), 0 14px 36px -14px rgba(2, 20, 27, 0.7)",
+    "--auth-text-muted": "#6f9dab",
+    "--auth-input-bg": "#0c3547",
+    "--auth-error-bg": "rgba(220, 38, 38, 0.14)",
+    "--auth-error-border": "rgba(248, 113, 113, 0.4)",
+    "--auth-error-text": "#fca5a5",
+    "--bg-4": "#155063",
+    "--sidebar-bg": "#04202c",
+    "--sidebar-border": "rgba(103, 232, 249, 0.14)",
+    "--sidebar-text": "#eafcff",
+    "--sidebar-text-muted": "#7fb6c4",
+    "--sidebar-hover-bg": "rgba(103, 232, 249, 0.08)",
+    "--sidebar-active-bg": "rgba(34, 211, 238, 0.16)",
+    "--sidebar-active-text": "#67e8f9",
+    "--main-bg": "#06222e",
+    "--topbar-bg": "rgba(6,34,46,0.84)",
   },
 };
 
@@ -336,10 +336,6 @@ interface SaaSStore {
   setQuality: (selectedQuality: RenderQuality) => void;
   setFps: (framesPerSecond: number) => void;
   tickClock: (deltaTime: number) => void;
-  integrationConfigs: Record<string, IntegrationConfig[]>;
-  integrationLoading: boolean;
-  integrationError: string | null;
-  fetchIntegrations: (selectedIntegrationType: string) => Promise<void>;
 
   projects: Project[];
   selectedProject: Project | null;
@@ -452,6 +448,11 @@ export const useSaaSStore = create<SaaSStore>((set, get) => ({
     if (accessToken && user) return;
     const newToken = await authService.refresh();
     if (!newToken) {
+      // No valid session on the backend — drop any stale cached profile
+      // so the UI never renders localStorage data as if authenticated.
+      authService.clear();
+      persistIsAdminSession(false);
+      set({ accessToken: null, user: null, isAdminSession: false });
       return;
     }
     const me = await authService.fetchMe(newToken);
@@ -517,24 +518,6 @@ export const useSaaSStore = create<SaaSStore>((set, get) => ({
   setQuality: (selectedQuality) => set((s) => ({ render: { ...s.render, quality: selectedQuality } })),
   setFps: (framesPerSecond) => set({ fps: framesPerSecond }),
   tickClock: (deltaTime) => set((s) => ({ simClock: s.simClock + deltaTime })),
-  integrationConfigs: {},
-  integrationLoading: false,
-  integrationError: null,
-  fetchIntegrations: async (selectedIntegrationType: string) => {
-    const saasStoreState = useSaaSStore.getState();
-    set({ integrationLoading: true, integrationError: null });
-    try {
-      const integrationResponse = await fetch(`/api/integrations/${selectedIntegrationType}`);
-      if (!integrationResponse.ok) throw new Error(`${integrationResponse.status}`);
-      const integrationApiResponse: { integrations: IntegrationConfig[] } = await integrationResponse.json();
-      set({
-        integrationConfigs: { ...saasStoreState.integrationConfigs, [selectedIntegrationType]: integrationApiResponse.integrations },
-        integrationLoading: false,
-      });
-    } catch (integrationFetchError) {
-      set({ integrationError: String(integrationFetchError), integrationLoading: false });
-    }
-  },
 
   projects: [],
   selectedProject: null,

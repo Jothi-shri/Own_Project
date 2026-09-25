@@ -17,7 +17,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <Sidebar collapsed={navCollapsed} onToggle={toggleNav} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-auto bg-[var(--main-bg)] p-4 sm:p-6">{children}</main>
+        <main className="flex-1 overflow-auto">
+          <div key={typeof window !== "undefined" ? window.location.pathname : "page"} className="anim-fade page-wrap">
+            <div className="page-inner">{children}</div>
+          </div>
+        </main>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import {
   User,
   TriangleAlert,
   CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
 
 interface RegistrationForm {
@@ -46,20 +47,14 @@ export default function Register() {
   };
   const isPasswordStrong = Object.values(passwordStrengthChecks).every(Boolean);
   const passwordStrengthScore = Object.values(passwordStrengthChecks).filter(Boolean).length;
-  const passwordStrengthColor =
+  const passwordStrengthMeta =
     passwordStrengthScore <= 1
-      ? "var(--red)"
-      : passwordStrengthScore <= 3
-        ? "var(--amber)"
-        : "var(--nv-green)";
-  const passwordStrengthLabel =
-    passwordStrengthScore <= 1
-      ? "Weak"
+      ? { color: "var(--danger)", label: "Weak" }
       : passwordStrengthScore === 2
-        ? "Fair"
+        ? { color: "var(--warning)", label: "Fair" }
         : passwordStrengthScore === 3
-          ? "Good"
-          : "Strong";
+          ? { color: "var(--warning)", label: "Good" }
+          : { color: "var(--success)", label: "Strong" };
   const doPasswordsMatch =
     !!registrationForm.confirmPassword && registrationForm.password === registrationForm.confirmPassword;
   const isRegistrationFormValid = !!registrationForm.name && !!registrationForm.email && isPasswordStrong && doPasswordsMatch;
@@ -106,28 +101,32 @@ export default function Register() {
   if (isRegistrationComplete) {
     return (
       <>
-        <div className="mb-8">
-          <h1 className="text-[28px] font-bold tracking-tight text-[var(--auth-heading)]">Account created</h1>
-          <p className="mt-1.5 text-base text-[var(--auth-text)]">Your account has been registered successfully.</p>
+        <div className="mb-6 text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--success-bg)] text-[var(--success)]">
+            <CheckCircle2 size={30} strokeWidth={1.8} />
+          </span>
+          <h1 className="mt-4 text-[24px] font-bold tracking-tight text-[var(--text-h)]">Account created</h1>
+          <p className="mt-1.5 text-sm text-[var(--text)]">Your account has been registered successfully.</p>
         </div>
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-[var(--auth-border)] bg-[var(--auth-input-bg)] p-6 text-center">
-          <CheckCircle2 size={48} className="text-[var(--nv-green)]" strokeWidth={1.8} />
-          <span className="text-sm text-[var(--auth-text)]">You can now sign in with your credentials.</span>
+        <div className="card-sunken p-5 text-center text-sm text-[var(--text)]">
+          You can now sign in with your credentials and start exploring your workspace.
         </div>
         <button
           type="button"
-          className="mt-1 flex w-full items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--auth-primary-from)] to-[var(--auth-primary-to)] py-3 text-[15px] font-bold text-white shadow-[var(--shadow)] transition hover:opacity-90"
+          className="btn btn-primary mt-4 w-full !py-3 text-[15px]"
           onClick={() => {
             setAuthView("login");
             navigate("/login");
           }}
         >
-          Sign in
+          <span className="inline-flex items-center gap-1.5">
+            Sign in <ArrowRight size={16} aria-hidden />
+          </span>
         </button>
-        <div className="mt-6 text-center text-sm font-semibold text-[var(--auth-text-muted)]">
+        <div className="mt-5 text-center text-sm text-[var(--text)]">
           <button
             type="button"
-            className="cursor-pointer border-none bg-transparent p-0 text-sm font-semibold text-[var(--auth-primary-from)] transition hover:opacity-80"
+            className="font-semibold text-[var(--accent)] transition hover:opacity-80 hover:underline"
             onClick={() => setIsRegistrationComplete(false)}
           >
             Register another account
@@ -139,17 +138,19 @@ export default function Register() {
 
   return (
     <>
-      <div className="mb-8">
-        <h1 className="text-[28px] font-bold tracking-tight text-[var(--auth-heading)]">Create account</h1>
-        <p className="mt-1.5 text-base text-[var(--auth-text)]">Register to access the SaaS platform</p>
+      <div className="mb-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Get started</p>
+        <h1 className="mt-1.5 text-[24px] font-bold tracking-tight text-[var(--text-h)]">Create account</h1>
+        <p className="mt-1.5 text-sm text-[var(--text)]">Register to access your SaaS workspace</p>
       </div>
 
-      <form onSubmit={handleRegistrationSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleRegistrationSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Full name</label>
+          <label htmlFor="reg-name" className="field-label">Full name</label>
           <div className="relative flex items-center">
-            <User size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
+            <User size={17} className="pointer-events-none absolute left-3.5 text-[var(--text-muted)]" aria-hidden />
             <input
+              id="reg-name"
               name="name"
               type="text"
               required
@@ -157,104 +158,113 @@ export default function Register() {
               value={registrationForm.name}
               onChange={handleRegistrationFieldChange}
               placeholder="Jane Doe"
-              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-3 text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
+              className="input !pl-10"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Email address</label>
+          <label htmlFor="reg-email" className="field-label">Email address</label>
           <div className="relative flex items-center">
-            <Mail size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
+            <Mail size={17} className="pointer-events-none absolute left-3.5 text-[var(--text-muted)]" aria-hidden />
             <input
+              id="reg-email"
               name="email"
               type="email"
               required
               value={registrationForm.email}
               onChange={handleRegistrationFieldChange}
               placeholder="you@company.com"
-              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-3 text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
+              className="input !pl-10"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Password</label>
+          <label htmlFor="reg-password" className="field-label">Password</label>
           <div className="relative flex items-center">
-            <Lock size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
+            <Lock size={17} className="pointer-events-none absolute left-3.5 text-[var(--text-muted)]" aria-hidden />
             <input
+              id="reg-password"
               name="password"
               type={isPasswordVisible ? "text" : "password"}
               required
               value={registrationForm.password}
               onChange={handleRegistrationFieldChange}
               placeholder="Min. 8 characters"
-              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-[42px] text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
+              className="input !pl-10 !pr-11"
             />
             <button
               type="button"
-              className="absolute right-[6px] flex h-8 w-8 items-center justify-center rounded-[7px] bg-transparent text-[var(--auth-text-muted)] hover:bg-[var(--code-bg)] hover:text-[var(--text-h)]"
+              className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text-h)]"
               onClick={() => setIsPasswordVisible((previousVisibility) => !previousVisibility)}
-              aria-label="Toggle password"
+              aria-label={isPasswordVisible ? "Hide password" : "Show password"}
             >
-              {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+              {isPasswordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
           {registrationPassword && (
             <>
-              <div className="mt-2.5 flex gap-1.5">
+              <div className="mt-2.5 flex gap-1.5" aria-hidden="true">
                 {[1, 2, 3, 4].map((strengthSegment) => (
                   <span
                     key={strengthSegment}
                     style={{
-                      background: strengthSegment <= passwordStrengthScore ? passwordStrengthColor : "var(--bg-4)",
+                      background: strengthSegment <= passwordStrengthScore ? passwordStrengthMeta.color : "var(--bg-4)",
                     }}
-                    className="h-1 flex-1 rounded-full transition"
+                    className="h-1 flex-1 rounded-full transition-all duration-300"
                   />
                 ))}
               </div>
-              <span className="mt-1.5 inline-block text-xs font-bold" style={{ color: passwordStrengthColor }}>
-                {passwordStrengthLabel}
+              <span className="mt-1.5 inline-block text-xs font-bold" style={{ color: passwordStrengthMeta.color }}>
+                {passwordStrengthMeta.label} password
               </span>
             </>
           )}
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--auth-text)]">Confirm password</label>
+          <label htmlFor="reg-confirm" className="field-label">Confirm password</label>
           <div className="relative flex items-center">
-            <Lock size={18} className="pointer-events-none absolute left-[14px] text-[var(--auth-text-muted)]" aria-hidden />
+            <Lock size={17} className="pointer-events-none absolute left-3.5 text-[var(--text-muted)]" aria-hidden />
             <input
+              id="reg-confirm"
               name="confirmPassword"
               type={isConfirmPasswordVisible ? "text" : "password"}
               required
               value={registrationForm.confirmPassword}
               onChange={handleRegistrationFieldChange}
               placeholder="Re-enter password"
-              className="w-full rounded-[10px] border border-[var(--auth-border)] bg-[var(--auth-input-bg)] py-3 pl-[42px] pr-[42px] text-[15px] text-[var(--text-h)] placeholder:text-[var(--auth-text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-bg)]"
+              className="input !pl-10 !pr-11"
             />
             <button
               type="button"
-              className="absolute right-[6px] flex h-8 w-8 items-center justify-center rounded-[7px] bg-transparent text-[var(--auth-text-muted)] hover:bg-[var(--code-bg)] hover:text-[var(--text-h)]"
+              className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text-h)]"
               onClick={() => setIsConfirmPasswordVisible((previousVisibility) => !previousVisibility)}
-              aria-label="Toggle password"
+              aria-label={isConfirmPasswordVisible ? "Hide password" : "Show password"}
             >
-              {isConfirmPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+              {isConfirmPasswordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
           {registrationForm.confirmPassword && !doPasswordsMatch && (
-            <span className="mt-1.5 block text-xs font-semibold text-[var(--red)]">Passwords do not match</span>
+            <span className="mt-1.5 block text-xs font-semibold text-[var(--danger)]">Passwords do not match</span>
+          )}
+          {doPasswordsMatch && (
+            <span className="mt-1.5 block text-xs font-semibold text-[var(--success)]">Passwords match</span>
           )}
         </div>
 
         {registrationError && (
-          <div className="flex items-center gap-2 rounded-[10px] border border-[var(--auth-error-border)] bg-[var(--auth-error-bg)] p-3 text-sm font-semibold text-[var(--auth-error-text)]">
-            <TriangleAlert size={16} className="shrink-0" aria-hidden />
-            {registrationError}
+          <div
+            className="anim-fade flex items-start gap-2.5 rounded-xl border border-[var(--auth-error-border)] bg-[var(--auth-error-bg)] p-3 text-[13px] font-medium text-[var(--auth-error-text)]"
+            role="alert"
+          >
+            <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden />
+            <span>{registrationError}</span>
           </div>
         )}
 
-        <button type="submit" className="flex w-full items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--auth-primary-from)] to-[var(--auth-primary-to)] py-3 text-[15px] font-bold text-white shadow-[var(--shadow)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-65" disabled={isSubmitting}>
+        <button type="submit" className="btn btn-primary mt-1 w-full !py-3 text-[15px]" disabled={isSubmitting}>
           {isSubmitting ? (
             <span className="inline-flex items-center justify-center gap-2">
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -266,11 +276,13 @@ export default function Register() {
         </button>
       </form>
 
-      <div className="mt-6 text-center text-sm font-semibold text-[var(--auth-text-muted)]">
+      <div className="divider my-5" aria-hidden="true" />
+
+      <p className="text-center text-sm text-[var(--text)]">
         Already have an account?{" "}
         <button
           type="button"
-          className="cursor-pointer border-none bg-transparent p-0 text-sm font-semibold text-[var(--auth-primary-from)] transition hover:opacity-80"
+          className="font-bold text-[var(--accent)] transition hover:opacity-80 hover:underline"
           onClick={() => {
             setAuthView("login");
             navigate("/login");
@@ -278,7 +290,7 @@ export default function Register() {
         >
           Sign in
         </button>
-      </div>
+      </p>
     </>
   );
 }
