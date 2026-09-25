@@ -1,6 +1,14 @@
 import { authService } from "./authService";
 import { useSaaSStore } from "../store";
 
+const API_BASE = (
+  (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL ?? ""
+).trim().replace(/\/$/, "");
+
+function apiUrl(path: string): string {
+  return API_BASE ? `${API_BASE}${path}` : path;
+}
+
 let refreshing: Promise<boolean> | null = null;
 
 async function tryRefresh(): Promise<boolean> {
@@ -50,7 +58,7 @@ export async function apiClient<T = any>(
   if (body) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: method ?? (body ? "POST" : "GET"),
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -62,7 +70,7 @@ export async function apiClient<T = any>(
     if (refreshed) {
       const newToken = useSaaSStore.getState().accessToken;
       if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
-      const retry = await fetch(path, {
+      const retry = await fetch(apiUrl(path), {
         method: method ?? (body ? "POST" : "GET"),
         headers,
         body: body ? JSON.stringify(body) : undefined,

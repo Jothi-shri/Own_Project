@@ -22,24 +22,26 @@ Full-stack workspace app for managing **projects, tasks, team members, analytics
 
 ```text
 .
+├── api/index.py      # Vercel serverless entry (re-exports backend.api.main:app)
 ├── backend/
 │   ├── api/            # FastAPI entry (main.py) + feature routers:
 │   │   │               # auth, dashboard, projects, tasks, team,
 │   │   │               # analytics, notifications, settings, activities
-│   ├── db/             # SQLAlchemy Base, session, ORM models
-│   ├── seed.py         # demo seed data
-│   └── scripts/        # helper scripts
+│   ├── db/             # session.py (canonical), database.py (compat shim), models.py
+│   ├── services/       # business-logic layer (routers stay HTTP-thin)
+│   ├── seed.py         # demo seed data (run manually, never auto-run)
+│   └── main.py         # exposes `app` (uvicorn + Vercel entry)
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/      # Dashboard, Projects, Tasks, Team, Analytics, Notifications, Settings
 │   │   ├── components/ # layout (Sidebar/Topbar/AppLayout), ui (primitives, Modal, Toasts, CommandPalette), auth
-│   │   ├── api/        # apiClient, authService
+│   │   ├── api/        # apiClient + authService (both honor VITE_API_URL)
 │   │   ├── store.ts    # Zustand store + theme handling
 │   │   └── tailwind.css# design tokens, card/button/badge/table, motion
-│   └── vite.config.js  # /api + /system proxy → backend :8000
-├── alembic/ + alembic.ini  # DB migrations
-├── pyproject.toml      # backend deps (uv-managed)
-├── .env                # DATABASE_URL, JWT_*, CORS_*, email settings
+│   └── vite.config.ts  # dev-only /api + /system proxy → backend :8000
+├── alembic/ + alembic.ini  # DB migrations (URL comes from DATABASE_URL env)
+├── pyproject.toml + requirements.txt  # backend deps (uv / Vercel Python)
+├── .env.example / frontend/.env.example  # copy to .env locally, never commit .env
 └── run.sh              # dev/build runner for both services
 ```
 
@@ -109,7 +111,44 @@ PYTHONPATH=. .venv/bin/python backend/seed.py
 | `FRONTEND_URL` | used in email links |
 | `EMAIL_PROVIDER` / `RESEND_API_KEY` / `MAIL_FROM` | password-reset email delivery |
 
-Frontend proxies `/api` and `/system` to `http://127.0.0.1:8000` in dev and preview (see `frontend/vite.config.js`).
+Frontend uses same-origin relative `/api` + `/system` URLs by default (Vite dev proxy).
+Set `VITE_API_URL` to call a remote backend (see `frontend/.env.example`).
+
+## Production deployment (Vercel)
+
+No `vercel.json` is used — deployment is configured via Vercel project
+settings using the current FastAPI + Vite approach. Create **two** Vercel
+projects from this repo:
+
+| Project | Root Directory | Framework / settings |
+| ------- | -------------- | -------------------- |
+| frontend | `frontend` | Vite preset; Build `npm run build`; Output `dist` |
+| backend | repository root | Python runtime auto-detects `api/index.py` → serves FastAPI `app` |
+
+Environment variables to set in Vercel (never commit secrets):
+
+- **Backend project:** `DATABASE_URL` (external PostgreSQL, e.g. Neon/Supabase —
+  `postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE`), `JWT_SECRET`,
+  `JWT_ALGORITHM`, `JWT_ACCESS_TTL_HOURS`, `JWT_REFRESH_TTL_HOURS`,
+  `CORS_ORIGINS` (must include the deployed frontend URL, e.g.
+  `https://your-frontend.vercel.app`), `COOKIE_SECURE=true`,
+  `COOKIE_SAMESITE=none` (required for cross-site refresh cookies),
+  plus email settings (`EMAIL_PROVIDER`, `RESEND_API_KEY`, `MAIL_FROM`).
+- **Frontend project:** `VITE_API_URL=https://your-backend.vercel.app`
+  (no trailing slash). Both `apiClient` and `authService` prefix requests
+  with it; when empty they fall back to same-origin relative URLs.
+
+Database:
+
+```bash
+# from the project root, against the production database:
+DATABASE_URL='postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE' \
+  PYTHONPATH=. .venv/bin/python -m alembic upgrade head
+```
+
+PostgreSQL is the only production database — there is no SQLite /
+localStorage / IndexedDB source of truth (browser storage holds only the
+cached user profile, theme, and the `HttpOnly` refresh cookie).
 
 ## API overview
 
