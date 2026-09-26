@@ -16,6 +16,13 @@ from ..config import settings
 from ...db.database import get_db
 from ...db.models import User
 
+if not settings.jwt_secret:
+    raise RuntimeError(
+        "JWT_SECRET is not set. Set it in .env (local) or in the Vercel "
+        "project environment (production). Refusing to sign tokens with "
+        "an empty secret."
+    )
+
 PBKDF2_ROUNDS = 200_000
 
 

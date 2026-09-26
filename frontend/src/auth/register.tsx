@@ -10,8 +10,6 @@ import {
   Mail,
   User,
   TriangleAlert,
-  CheckCircle2,
-  ArrowRight,
 } from "lucide-react";
 
 interface RegistrationForm {
@@ -36,7 +34,6 @@ export default function Register() {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [registrationError, setRegistrationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
 
   const registrationPassword = registrationForm.password;
   const passwordStrengthChecks = {
@@ -80,13 +77,17 @@ export default function Register() {
     setIsSubmitting(true);
     try {
       const authResponse = await authService.register(registrationForm.name, registrationForm.email, registrationForm.password);
+      // The register endpoint already authenticates: it returns an access
+      // token + user and sets the HttpOnly refresh cookie (same _auth_response
+      // as login). Establish the session, then go straight to /dashboard —
+      // the login page must never appear in between.
       setAuth(authResponse.access_token, authResponse.user);
-      setIsRegistrationComplete(true);
       pushToast({
         kind: "success",
-        title: "Account created",
-        msg: "Signed in — your account is persisted in PostgreSQL.",
+        title: `Welcome, ${authResponse.user.name.split(" ")[0]}`,
+        msg: "Account created — you are signed in.",
       });
+      navigate("/dashboard", { replace: true });
     } catch (registrationFailure: unknown) {
       const errorMessage =
         registrationFailure instanceof Error
@@ -96,44 +97,6 @@ export default function Register() {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (isRegistrationComplete) {
-    return (
-      <>
-        <div className="mb-6 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--success-bg)] text-[var(--success)]">
-            <CheckCircle2 size={30} strokeWidth={1.8} />
-          </span>
-          <h1 className="mt-4 text-[24px] font-bold tracking-tight text-[var(--text-h)]">Account created</h1>
-          <p className="mt-1.5 text-sm text-[var(--text)]">Your account has been registered successfully.</p>
-        </div>
-        <div className="card-sunken p-5 text-center text-sm text-[var(--text)]">
-          You can now sign in with your credentials and start exploring your workspace.
-        </div>
-        <button
-          type="button"
-          className="btn btn-primary mt-4 w-full !py-3 text-[15px]"
-          onClick={() => {
-            setAuthView("login");
-            navigate("/login");
-          }}
-        >
-          <span className="inline-flex items-center gap-1.5">
-            Sign in <ArrowRight size={16} aria-hidden />
-          </span>
-        </button>
-        <div className="mt-5 text-center text-sm text-[var(--text)]">
-          <button
-            type="button"
-            className="font-semibold text-[var(--accent)] transition hover:opacity-80 hover:underline"
-            onClick={() => setIsRegistrationComplete(false)}
-          >
-            Register another account
-          </button>
-        </div>
-      </>
-    );
   }
 
   return (

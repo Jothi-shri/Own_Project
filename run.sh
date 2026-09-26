@@ -44,7 +44,21 @@ if [[ -f "$PROJECT_ROOT/.env" ]]; then
   set +a
 fi
 
-PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
+# Ignore an unrelated outer VIRTUAL_ENV (e.g. a parent folder's .venv) so
+# `uv` targets this project's environment without warnings.
+if [[ "${VIRTUAL_ENV:-}" != "$PROJECT_ROOT/.venv" ]]; then
+  unset VIRTUAL_ENV
+fi
+
+# On Windows (Git Bash) the venv interpreter lives under Scripts/, not bin/.
+resolve_python_bin() {
+  PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
+  if [[ ! -f "$PYTHON_BIN" && -f "$PROJECT_ROOT/.venv/Scripts/python.exe" ]]; then
+    PYTHON_BIN="$PROJECT_ROOT/.venv/Scripts/python.exe"
+  fi
+}
+
+resolve_python_bin
 
 if [[ "$BACKEND_ONLY" == false ]]; then
   command -v node >/dev/null 2>&1 || die "node is not installed. Install Node.js >=18"
@@ -68,10 +82,10 @@ setup_backend() {
     else
       python3 -m venv "$PROJECT_ROOT/.venv" 2>&1 | tail -n 5
     fi
-    PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
+    resolve_python_bin
   else
     info ".venv already exists — skipping creation."
-    PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
+    resolve_python_bin
   fi
 
   local need_sync=false
@@ -92,7 +106,7 @@ setup_backend() {
     else
       die "uv is required — install from https://docs.astral.sh/uv/"
     fi
-    PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
+    resolve_python_bin
   else
     info "Backend dependencies already installed — skipping uv sync."
   fi

@@ -15,7 +15,9 @@ def _env_bool(name: str, default: str = "false") -> bool:
     return os.getenv(name, default).lower() in ("1", "true", "yes", "on")
 
 class Settings:
-    jwt_secret: str = os.getenv("JWT_SECRET", "dev-super-secret-change-in-production-please-32chars")
+    # No default: an unset JWT_SECRET must fail loudly (see auth.security)
+    # instead of silently signing tokens with a publicly known key.
+    jwt_secret: str = os.getenv("JWT_SECRET", "")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_access_ttl_hours: float = float(os.getenv("JWT_ACCESS_TTL_HOURS", "0.25"))
     jwt_refresh_ttl_hours: float = float(os.getenv("JWT_REFRESH_TTL_HOURS", "24"))
